@@ -1,0 +1,220 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Post {
+  id    String @id @default(uuid())
+  title String
+  text  String
+
+  // To return `Date`s intact through the API we use transformers
+  // https://trpc.io/docs/v11/data-transformers
+  // This is unique so it can be used for cursor-based pagination
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+
+model School {
+  sch_id      Int @id @default(autoincrement())
+  sch_name    String
+  ed_level    EducationLevel
+  location    String?
+  createdAt   DateTime @default(now())
+
+  users       User[]
+  courses     Course[]
+  enrollments Enrollment[] 
+  gameLiteracy  GameLiteracy[]
+  gameNumeracy  GameNumeracy[]
+}
+
+model User {
+  user_id   Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String?  @unique
+  fullname  String
+  password  String
+  role      Role     @default(student)
+  schoolId  Int
+  school    School   @relation(fields: [schoolId], references: [sch_id])
+  grade     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments Enrollment[]
+  submissions Submission[]
+  answers    Answer[]  
+  gameLiteracy GameLiteracy[]
+  gameNumeracy GameNumeracy[]
+  courses   Course[] @relation("InstructorCourses")
+}
+
+model Course {
+  id            Int      @id @default(autoincrement())
+  name          String
+  description   String?
+  teacherId     Int?
+  teacher       User?    @relation("InstructorCourses", fields: [teacherId], references: [user_id])
+  schoolId      Int?
+  school        School?  @relation(fields: [schoolId], references: [sch_id])
+  educationLevel EducationLevel
+  grade         Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  enrollments   Enrollment[]
+  assignments   Assignment[]
+  modules       Module[]
+  quizzes       Quiz[]
+}
+
+model Enrollment {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  user      User   @relation(fields: [userId], references: [user_id])
+  courseId  Int
+  course    Course @relation(fields: [courseId], references: [id])
+  schoolId  Int
+  school    School @relation(fields: [schoolId], references: [sch_id])
+  enrolledAt DateTime @default(now())
+  @@unique([userId, courseId])
+}
+
+model Assignment {
+  id          Int       @id @default(autoincrement())
+  courseId    Int
+  course      Course    @relation(fields: [courseId], references: [id])
+  title       String
+  description String?
+  dueDate     DateTime?
+  allowResubmission Boolean @default(false)
+  maxUploadSize Int?
+  submissions Submission[]
+  createdAt   DateTime @default(now())
+}
+
+model Submission {
+  id             Int      @id @default(autoincrement())
+  assignmentId   Int
+  assignment     Assignment @relation(fields: [assignmentId], references: [id])
+  studentId      Int
+  student        User @relation(fields: [studentId], references: [user_id])
+  filePath       String?
+  submittedAt    DateTime @default(now())
+  isFinal        Boolean  @default(true)
+  @@unique([assignmentId, studentId])
+}
+
+model Module {
+  id          Int       @id @default(autoincrement())
+  courseId    Int
+  course      Course    @relation(fields: [courseId], references: [id])
+  title       String
+  description String?
+  contents    ModuleContent[]
+  createdAt   DateTime @default(now())
+}
+
+model ModuleContent {
+  id          Int       @id @default(autoincrement())
+  moduleId    Int
+  module      Module    @relation(fields: [moduleId], references: [id])
+  contentType ContentType
+  contentData String
+  createdAt   DateTime @default(now())
+}
+
+model Quiz {
+  id          Int       @id @default(autoincrement())
+  courseId    Int
+  course      Course    @relation(fields: [courseId], references: [id])
+  title       String
+  description String?
+  allowResubmission Boolean @default(false)
+  questions   Question[]
+  createdAt   DateTime @default(now())
+}
+
+model Question {
+  id           Int       @id @default(autoincrement())
+  quizId       Int
+  quiz         Quiz      @relation(fields: [quizId], references: [id])
+  questionText String
+  questionType QuestionType
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+
+  answers      Answer[]  
+}
+
+model Answer {
+  id          Int       @id @default(autoincrement())
+  questionId  Int
+  question    Question  @relation(fields: [questionId], references: [id])
+  studentId   Int
+  student     User @relation(fields: [studentId], references: [user_id])
+  answerText  String
+  submittedAt DateTime @default(now())
+}
+
+model GameLiteracy {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  user      User   @relation(fields: [userId], references: [user_id])
+  schoolId  Int
+  school    School @relation(fields: [schoolId], references: [sch_id])
+  score     Int
+  playedAt  DateTime @default(now())
+}
+
+model GameNumeracy {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  user      User   @relation(fields: [userId], references: [user_id])
+  schoolId  Int
+  school    School @relation(fields: [schoolId], references: [sch_id])
+  score     Int
+  playedAt  DateTime @default(now())
+}
+
+// ENUMS
+enum Role {
+  student
+  teacher
+  admin
+  super_admin
+}
+
+enum EducationLevel {
+  SD
+  SMP
+  SMA
+}
+
+enum ContentType {
+  text
+  file
+  video
+  link
+}
+
+enum QuestionType {
+  multiple_choice
+  short_answer
+  true_false
+}
