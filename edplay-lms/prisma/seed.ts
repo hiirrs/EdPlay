@@ -63,6 +63,7 @@ async function main() {
       teacherId: teacher.user_id,
       schoolId: school.sch_id,
       educationLevel: "SMA",
+      imageUrl: '/images/bgs/bg-class1.png'
     },
   });
 

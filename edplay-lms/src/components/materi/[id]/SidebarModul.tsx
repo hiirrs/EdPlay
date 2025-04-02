@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
-import { Button } from "../ui/button"
-import ModuleList from "../materi/ModuleList"
+import { Button } from "../../ui/button"
+import ModuleList from "./ModuleList"
+import React from "react"
 
 interface SidebarProps {
   modules: { id: number; title: string }[]

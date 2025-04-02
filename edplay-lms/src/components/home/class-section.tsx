@@ -9,6 +9,7 @@ interface ClassData {
   hasNewMaterial: boolean
   hasExam: boolean
   teacher: string
+  imageUrl?: string
 }
 
 interface ClassesSectionProps {
