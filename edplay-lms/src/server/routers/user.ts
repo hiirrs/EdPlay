@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '~/server/prisma';
 import { router, publicProcedure } from "../trpc";
 import { TRPCError } from '@trpc/server';
+import { createJWT, createCookie } from '~/utils/jwt';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -58,33 +59,40 @@ export const userRouter = router({
                 password: z.string(),
             }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+            // const user = await prisma.user.findUnique({
+            //     where: { username: input.username },
+            // });
+            const { res } = ctx;
+
             const user = await prisma.user.findUnique({
                 where: { username: input.username },
-            });
-
-            if (!user) {
+              });
+          
+              if (!user) {
                 throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: 'username ini belum terdaftar',
+                  code: 'NOT_FOUND',
+                  message: 'Username ini belum terdaftar',
                 });
-            }
+              }
 
             const isValid = await bcrypt.compare(input.password, user.password);
             if (!isValid) {
                 throw new TRPCError({
                     code: 'UNAUTHORIZED',
-                    message: 'password tidak valid',
+                    message: 'perikasa kembali kredensial anda',
                 });
             }
 
-            const token = jwt.sign(
-                { userId: user.user_id, role: user.role },
-                process.env.JWT_SECRET!,
-                { expiresIn: '3h' }
-            );
+            // const token = createJWT({ userId: user.user_id, role: user.role });
+            const token = createJWT({ userId: user.user_id, role: user.role });
 
-            return { token, user };
+            if (!res) {
+                throw new Error('Response object tidak tersedia di context!');
+              }
+              res.setHeader('Set-Cookie', createCookie(token));
+
+            return { user: user };
         }),
 
     me: publicProcedure.query(async ({ ctx }) => {
@@ -106,4 +114,9 @@ export const userRouter = router({
         }
         return user;
     }),
+
+    logout: publicProcedure.mutation(({ ctx }) => {
+        ctx.res.setHeader('Set-Cookie', 'token=; Path=/; Max-Age=0');
+        return { success: true };
+      }),
 });

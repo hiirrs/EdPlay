@@ -1,11 +1,13 @@
-// Adds seed data to your db
-// @see https://www.prisma.io/docs/guides/database/seed-database
-
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // Hash passwords
+  const hashedTeacherPassword = await bcrypt.hash("securepassword", 10);
+  const hashedStudentPassword = await bcrypt.hash("anotherpassword", 10);
+
   // Optionally clear existing data
   await prisma.answer.deleteMany({});
   await prisma.question.deleteMany({});
@@ -22,40 +24,36 @@ async function main() {
   await prisma.school.deleteMany({});
   await prisma.post.deleteMany({});
 
-  // Create a school
   const school = await prisma.school.create({
     data: {
       sch_name: "EdPlay Academy",
-      ed_level: "SMA", // Using high school level as an example
+      ed_level: "SMA",
       location: "123 Education Lane",
     },
   });
 
-  // Create a teacher user
   const teacher = await prisma.user.create({
     data: {
       username: "teacher_john",
       email: "john@example.com",
       fullname: "John Doe",
-      password: "securepassword", // In production, remember to hash passwords
+      password: hashedTeacherPassword,
       role: "teacher",
       schoolId: school.sch_id,
     },
   });
 
-  // Create a student user
   const student = await prisma.user.create({
     data: {
       username: "student_jane",
       email: "jane@example.com",
       fullname: "Jane Smith",
-      password: "anotherpassword", // In production, remember to hash passwords
+      password: hashedStudentPassword,
       role: "student",
       schoolId: school.sch_id,
     },
   });
 
-  // Create a course with the teacher as the instructor
   const course = await prisma.course.create({
     data: {
       name: "Mathematics 101",
@@ -67,7 +65,6 @@ async function main() {
     },
   });
 
-  // Enroll the student in the course
   await prisma.enrollment.create({
     data: {
       userId: student.user_id,
@@ -76,19 +73,17 @@ async function main() {
     },
   });
 
-  // Create an assignment for the course
   const assignment = await prisma.assignment.create({
     data: {
       courseId: course.id,
       title: "Algebra Homework",
       description: "Solve the algebra problems in chapter 2.",
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // one week from now
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       allowResubmission: false,
-      maxUploadSize: 1048576, // 1 MB
+      maxUploadSize: 1048576,
     },
   });
 
-  // Create a submission for the assignment by the student
   await prisma.submission.create({
     data: {
       assignmentId: assignment.id,
@@ -98,7 +93,6 @@ async function main() {
     },
   });
 
-  // Create a module for the course
   const moduleRecord = await prisma.module.create({
     data: {
       courseId: course.id,
@@ -107,7 +101,6 @@ async function main() {
     },
   });
 
-  // Create module content
   await prisma.moduleContent.create({
     data: {
       moduleId: moduleRecord.id,
@@ -116,7 +109,6 @@ async function main() {
     },
   });
 
-  // Create a quiz for the course
   const quiz = await prisma.quiz.create({
     data: {
       courseId: course.id,
@@ -126,7 +118,6 @@ async function main() {
     },
   });
 
-  // Create a question in the quiz
   const question = await prisma.question.create({
     data: {
       quizId: quiz.id,
@@ -135,7 +126,6 @@ async function main() {
     },
   });
 
-  // Create an answer from the student for the question
   await prisma.answer.create({
     data: {
       questionId: question.id,
@@ -144,7 +134,6 @@ async function main() {
     },
   });
 
-  // Create a blog post
   await prisma.post.create({
     data: {
       title: "Welcome to EdPlay!",
@@ -152,7 +141,6 @@ async function main() {
     },
   });
 
-  // Create a GameLiteracy record
   await prisma.gameLiteracy.create({
     data: {
       userId: student.user_id,
@@ -161,7 +149,6 @@ async function main() {
     },
   });
 
-  // Create a GameNumeracy record
   await prisma.gameNumeracy.create({
     data: {
       userId: student.user_id,
