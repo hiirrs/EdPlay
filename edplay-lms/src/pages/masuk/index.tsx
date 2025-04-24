@@ -7,48 +7,40 @@ import { Label } from '~/components/ui/label';
 import { Card } from '~/components/ui/card';
 import { trpc } from '~/utils/trpc';
 import type { NextPageWithLayout } from '../_app';
-import Navbar from '~/components/Navbar';
+import Navbar from '~/components/NavbarAlt';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 const LoginPage: NextPageWithLayout = () => {
-  const [loginData, setLoginData] = useState({
-    username: '',
-    password: '',
-  });
-  const [loggedInUser, setLoggedInUser] = useState<{
-    token: string;
-    user: {
-      user_id: number;
-      username: string;
-      fullname: string;
-      schoolId: number;
-    };
-  } | null>(null);
+  const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const router = useRouter();
+  // const utils = trpc.useContext();
 
   const loginMutation = trpc.user.login.useMutation({
-    onSuccess(data) {
-      setLoggedInUser(data);
+    onSuccess() {
       toast.success('Login successful!');
+      router.push('/'); // redirect to dashboard after login
     },
     onError(error: any) {
-      toast.error('Login error: ' + error.message);
+      // More resilient error handling
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      toast.error('Login error: ' + errorMessage);
+      // No need to invalidate here as we're not using the data yet
     },
   });
-
+  
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await loginMutation.mutateAsync({
-        username: loginData.username,
-        password: loginData.password,
-      });
+      await loginMutation.mutateAsync(loginData);
     } catch (error) {
-      console.error('Login error:', error);
+      // Additional error handling if needed
+      console.error('Login submission error:', error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FDF8F4]">
+    <div className="min-h-screen bg-[#FFFBF3]">
       <Navbar />
       <main className="container mx-auto max-w-2xl pt-4 px-4">
         <div className="text-center mb-6 space-y-2">
@@ -66,9 +58,7 @@ const LoginPage: NextPageWithLayout = () => {
                   type="text"
                   placeholder="Username"
                   value={loginData.username}
-                  onChange={(e) =>
-                    setLoginData({ ...loginData, username: e.target.value })
-                  }
+                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
                   required
                 />
               </div>
@@ -79,14 +69,12 @@ const LoginPage: NextPageWithLayout = () => {
                   type="password"
                   placeholder="Password"
                   value={loginData.password}
-                  onChange={(e) =>
-                    setLoginData({ ...loginData, password: e.target.value })
-                  }
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                   required
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600">
+            <Button type="submit" className="w-full bg-[#334589] hover:bg-orange-600">
               {loginMutation.status === 'pending' ? 'Logging in...' : 'Masuk'}
             </Button>
             {loginMutation.error && (
@@ -94,8 +82,6 @@ const LoginPage: NextPageWithLayout = () => {
             )}
           </form>
         </Card>
-
-        {loggedInUser && <p className="text-center mt-4">User logged in!</p>}
       </main>
     </div>
   );

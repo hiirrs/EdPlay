@@ -23,7 +23,8 @@ import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { trpc } from '~/utils/trpc';
 import type { NextPageWithLayout } from '../_app';
-import Navbar from '~/components/Navbar';
+import Navbar from '~/components/NavbarAlt';
+
 
 const RegistrationPage: NextPageWithLayout = () => {
   const [step, setStep] = useState(1);

@@ -3,7 +3,7 @@
 import { z } from 'zod';
 // import type { Prisma } from "@prisma/client";
 import { prisma } from '~/server/prisma';
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure } from "../trpc";
 import { TRPCError } from '@trpc/server';
 import { createJWT, createCookie } from '~/utils/jwt';
 import bcrypt from 'bcryptjs';
@@ -60,49 +60,22 @@ export const userRouter = router({
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            // const user = await prisma.user.findUnique({
-            //     where: { username: input.username },
-            // });
-            const { res } = ctx;
+            const user = await prisma.user.findUnique({ where: { username: input.username } });
 
-            const user = await prisma.user.findUnique({
-                where: { username: input.username },
-              });
-          
-              if (!user) {
-                throw new TRPCError({
-                  code: 'NOT_FOUND',
-                  message: 'Username ini belum terdaftar',
-                });
-              }
-
-            const isValid = await bcrypt.compare(input.password, user.password);
-            if (!isValid) {
-                throw new TRPCError({
-                    code: 'UNAUTHORIZED',
-                    message: 'perikasa kembali kredensial anda',
-                });
+            if (!user || !(await bcrypt.compare(input.password, user.password))) {
+                throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' });
             }
 
-            // const token = createJWT({ userId: user.user_id, role: user.role });
             const token = createJWT({ userId: user.user_id, role: user.role });
 
-            if (!res) {
-                throw new Error('Response object tidak tersedia di context!');
-              }
-              res.setHeader('Set-Cookie', createCookie(token));
+            if (ctx.res) {
+                ctx.res.setHeader('Set-Cookie', createCookie(token));
+            }
 
-            return { user: user };
+            return { user };
         }),
 
-    me: publicProcedure.query(async ({ ctx }) => {
-        // Ensure the user is authenticated (ctx.user should be set by your auth middleware)
-        if (!ctx.user) {
-            throw new TRPCError({
-                code: 'UNAUTHORIZED',
-                message: 'Not authenticated',
-            });
-        }
+    me: protectedProcedure.query(async ({ ctx }) => {
         const user = await prisma.user.findUnique({
             where: { user_id: ctx.user.userId },
         });
@@ -118,5 +91,5 @@ export const userRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
         ctx.res.setHeader('Set-Cookie', 'token=; Path=/; Max-Age=0');
         return { success: true };
-      }),
+    }),
 });

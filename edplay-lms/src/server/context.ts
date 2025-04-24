@@ -1,46 +1,60 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// import jwt from 'jsonwebtoken';
 import type * as trpcNext from '@trpc/server/adapters/next';
 import { verifyJWT } from '../utils/jwt';
 import { parse } from 'cookie';
 
-interface CreateContextOptions {
-  req: trpcNext.CreateNextContextOptions['req'];
-  res: trpcNext.CreateNextContextOptions['res'];
-  // session: Session | null
+/**
+ * Tipe payload token JWT yang kita harapkan.
+ */
+interface DecodedToken {
+  userId: number;
+  role: string;
 }
 
 /**
- * Inner function for `createContext` where we create the context.
- * This is useful for testing when we don't want to mock Next.js' request/response
+ * Digunakan saat testing atau untuk membuat context secara manual.
+ */
+interface CreateContextOptions {
+  req: trpcNext.CreateNextContextOptions['req'];
+  res: trpcNext.CreateNextContextOptions['res'];
+}
+
+/**
+ * Fungsi utama untuk membuat context, dipanggil dari tRPC handler.
  */
 export async function createContextInner({ req, res }: CreateContextOptions) {
-  let user = undefined;
+  let user: DecodedToken | undefined = undefined;
+
   const cookies = parse(req.headers.cookie || '');
   const token = cookies.token;
 
   if (token) {
     try {
-      const decode = verifyJWT(token);
-      user = { userId: (decode as any).userId, role: (decode as any).role };
-    } catch (err) {
-      console.error('JWT error:', err);
+      const decoded = verifyJWT(token) as DecodedToken;
+      user = { userId: decoded.userId, role: decoded.role };
+    } catch (error) {
+      console.error('[JWT ERROR]', error);
+      // Token tidak valid, hapus cookie
+      res.setHeader('Set-Cookie', 'token=; Path=/; Max-Age=0');
     }
   }
 
-  return { user, res };
+  return {
+    req,
+    res,
+    user,
+  };
 }
-
-export type Context = Awaited<ReturnType<typeof createContextInner>>;
 
 /**
- * Creates context for an incoming request
- * @see https://trpc.io/docs/v11/context
+ * Fungsi ini akan dipanggil langsung oleh `createNextApiHandler`
  */
-export async function createContext(
+export function createContext(
   opts: trpcNext.CreateNextContextOptions,
 ): Promise<Context> {
-  // for API-response caching see https://trpc.io/docs/v11/caching
-
-  return await createContextInner({ req: opts.req, res:opts.res });
+  return createContextInner({ req: opts.req, res: opts.res });
 }
+
+/**
+ * Type context global yang bisa digunakan di seluruh router tRPC.
+ */
+export type Context = Awaited<ReturnType<typeof createContextInner>>;

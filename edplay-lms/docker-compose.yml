@@ -8,7 +8,7 @@ services:
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/lms
+      DATABASE_URL: postgresql://postgres:postgres@db:5433/lms
       JWT_SECRET: your_jwt_secret_here
     volumes:
       - .:/app
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:15
+    image: postgres:17
     restart: always
     ports:
       - "5433:5432"

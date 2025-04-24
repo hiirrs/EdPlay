@@ -6,9 +6,10 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().url(),
-  NODE_ENV: z.enum(['development', 'test', 'production']),
-});
+    DATABASE_URL: z.string().url(),
+    NODE_ENV: z.enum(['development', 'test', 'production']),
+    JWT_SECRET: z.string().min(10, "JWT_SECRET should be at least 10 characters long"),
+  });
 
 const _env = envSchema.safeParse(process.env);
 

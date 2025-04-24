@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Navbar from './NavbarAlt'
+import Navbar from '../../NavbarAlt'
 import TabNavigation from './TabNav'
 import ContentView from './ContentView'
 import ContentList from './ContentList'
