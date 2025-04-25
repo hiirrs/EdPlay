@@ -12,7 +12,7 @@ interface FeatureModalProps {
   open: boolean
   onClose: () => void
   icon: ReactNode
-  iconBg: string
+  iconBg: string | undefined
 }
 
 export function FeatureModal({ title, open, onClose, icon, iconBg }: FeatureModalProps) {

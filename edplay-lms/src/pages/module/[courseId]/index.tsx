@@ -1,5 +1,5 @@
 import { useParams } from "next/navigation"
-import LearningPlatform from "~/components/materi/[courseId]/LearningPlatform"
+import LearningPlatform from "~/components/module/[courseId]/LearningPlatform"
 
 
 export default function CourseMateriPage() {

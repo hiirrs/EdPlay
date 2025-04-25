@@ -11,4 +11,11 @@ export const quizRouter = router({
         orderBy: { createdAt: "asc" },
       })
     }),
+  // create: publicProcedure
+  delete: publicProcedure
+    .input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      return await prisma.quiz.delete({
+        where: { id: input.id },
+      })
+    }),
 })

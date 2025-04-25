@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Hash passwords
+  const hashedAdminPassword = await bcrypt.hash("adminpassword", 10);
   const hashedTeacherPassword = await bcrypt.hash("securepassword", 10);
   const hashedStudentPassword = await bcrypt.hash("anotherpassword", 10);
 
@@ -29,6 +30,17 @@ async function main() {
       sch_name: "EdPlay Academy",
       ed_level: "SMA",
       location: "123 Education Lane",
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      username: "admin",
+      email: "admin@example.com",
+      fullname: "Admin User",
+      password: hashedAdminPassword,
+      role: "admin",
+      schoolId: school.sch_id,
     },
   });
 

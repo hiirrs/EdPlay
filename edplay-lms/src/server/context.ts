@@ -1,6 +1,7 @@
 import type * as trpcNext from '@trpc/server/adapters/next';
 import { verifyJWT } from '../utils/jwt';
 import { parse } from 'cookie';
+import { prisma } from './prisma';
 
 /**
  * Tipe payload token JWT yang kita harapkan.
@@ -42,6 +43,7 @@ export async function createContextInner({ req, res }: CreateContextOptions) {
     req,
     res,
     user,
+    db: prisma,
   };
 }
 

@@ -3,7 +3,7 @@
 import { z } from 'zod';
 // import type { Prisma } from "@prisma/client";
 import { prisma } from '~/server/prisma';
-import { router, publicProcedure, protectedProcedure } from "../trpc";
+import { router, publicProcedure } from "../trpc";
 import { TRPCError } from '@trpc/server';
 import { createJWT, createCookie } from '~/utils/jwt';
 import bcrypt from 'bcryptjs';
@@ -75,17 +75,12 @@ export const userRouter = router({
             return { user };
         }),
 
-    me: protectedProcedure.query(async ({ ctx }) => {
-        const user = await prisma.user.findUnique({
+    me: publicProcedure.query(({ ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
+        return prisma.user.findUnique({
             where: { user_id: ctx.user.userId },
+            select: { user_id: true, role: true, fullname: true },
         });
-        if (!user) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'User not found',
-            });
-        }
-        return user;
     }),
 
     logout: publicProcedure.mutation(({ ctx }) => {
