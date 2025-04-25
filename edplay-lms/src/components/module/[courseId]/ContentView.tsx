@@ -53,7 +53,11 @@ export default function ContentView({
                   {content.contentType === 'VIDEO' && (
                     <div className="aspect-w-16 aspect-h-9">
                       <iframe
-                        src={content.contentData}
+                        src={
+                          content.contentData.includes('youtube.com')
+                            ? content.contentData.replace('watch?v=', 'embed/')
+                            : content.contentData
+                        }
                         className="w-full h-full rounded"
                         allowFullScreen
                       />

@@ -209,10 +209,10 @@ enum EducationLevel {
 }
 
 enum ContentType {
-  text
-  file
-  video
-  link
+  TEXT
+  FILE
+  VIDEO
+  LINK
 }
 
 enum QuestionType {

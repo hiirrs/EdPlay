@@ -18,16 +18,11 @@ import RichTextEditor from '~/components/RichTextEditor';
 import { sanitize } from '~/utils/sanitize';
 import { Trash2 } from 'lucide-react';
 
-export default function AddModulePage() {
+export default function EditModulePage() {
   const router = useRouter();
   const params = useParams();
-  const courseIdParam = params?.courseId as string;
-  const [courseId, setCourseId] = useState<number | null>(null);
-
-  useEffect(() => {
-    const id = Number(courseIdParam);
-    if (!isNaN(id)) setCourseId(id);
-  }, [courseIdParam]);
+  const moduleIdParam = params?.moduleId;
+  const moduleId = moduleIdParam ? Number(moduleIdParam) : null;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -35,36 +30,54 @@ export default function AddModulePage() {
     {
       type: 'TEXT' | 'FILE' | 'LINK' | 'VIDEO';
       contentData: string;
+      filePath?: string;
       file?: File;
     }[]
   >([]);
 
-  const addModule = trpc.module.create.useMutation({
+  const { data: moduleData, isLoading } = trpc.module.getByModuleId.useQuery(
+    { id: moduleId ?? 0 },
+    { enabled: !!moduleId },
+  );
+
+  const updateModule = trpc.module.update.useMutation({
     onSuccess: () => {
-      toast.success('Modul berhasil ditambahkan');
+      toast.success('Modul berhasil diperbarui');
       router.back();
     },
-    onError: () => toast.error('Gagal menambahkan modul'),
+    onError: () => toast.error('Gagal memperbarui modul'),
   });
 
-  const handleSubmit = async () => {
-    if (!courseId) return;
+  useEffect(() => {
+    if (moduleData) {
+      setTitle(moduleData.title);
+      setDescription(moduleData.description || '');
+      setContents(
+        moduleData.contents.map((c) => ({
+          type: c.contentType.toUpperCase() as
+            | 'TEXT'
+            | 'FILE'
+            | 'LINK'
+            | 'VIDEO',
+          contentData: c.contentData,
+          filePath: c.filePath ?? undefined,
+        })),
+      );
+    }
+  }, [moduleData]);
 
+  const handleUpdate = async () => {
     if (!title.trim()) {
-      toast.error('Judul modul tidak boleh kosong');
+      toast.error('Judul tidak boleh kosong');
       return;
     }
-
-    if (contents.some((c) => !c.type)) {
-      toast.error('Semua konten harus memiliki tipe');
-      return;
-    }
+    if (!moduleId) return;
 
     const uploads = await Promise.all(
       contents.map(async (c) => {
         if (c.type === 'FILE' && c.file) {
           const formData = new FormData();
-          formData.append('FILE', c.file);
+          formData.append('file', c.file);
           const res = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
@@ -72,12 +85,12 @@ export default function AddModulePage() {
           const { path } = await res.json();
           return { ...c, contentData: '', filePath: path };
         }
-        return { ...c, filePath: undefined };
+        return c;
       }),
     );
 
-    addModule.mutate({
-      courseId,
+    updateModule.mutate({
+      id: moduleId,
       title,
       description,
       contents: uploads.map((c) => ({
@@ -89,7 +102,8 @@ export default function AddModulePage() {
     });
   };
 
-  if (!courseId) return <p className="text-center mt-10">Loading...</p>;
+  if (!moduleId || isNaN(moduleId)) return <p>Modul tidak valid.</p>;
+  if (isLoading || !moduleData) return <p>Loading...</p>;
 
   return (
     <div className="min-h-screen bg-[#FDF8F4] px-4 py-4">
@@ -102,7 +116,7 @@ export default function AddModulePage() {
           ← Kembali
         </Button>
 
-        <h1 className="text-2xl font-bold">Tambah Modul</h1>
+        <h1 className="text-2xl font-bold">Edit Modul</h1>
 
         <Input
           className="border rounded-md px-4 py-0"
@@ -165,29 +179,57 @@ export default function AddModulePage() {
             )}
 
             {c.type === 'FILE' && (
-              <Input
-                type="file"
-                accept="application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const newContents = [...contents];
-                  newContents[i].file = file;
-                  setContents(newContents);
-                }}
-              />
+              <>
+                {c.filePath && (
+                  <div className="text-sm text-gray-600 mb-1">
+                    File saat ini:{' '}
+                    <a
+                      href={c.filePath}
+                      target="_blank"
+                      className="underline text-blue-600"
+                    >
+                      {c.filePath.split('/').pop()}
+                    </a>
+                  </div>
+                )}
+                <Input
+                  type="file"
+                  accept="application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const newContents = [...contents];
+                    newContents[i].file = file;
+                    setContents(newContents);
+                  }}
+                />
+              </>
             )}
 
             {c.type === 'LINK' && (
-              <Input
-                placeholder="https://..."
-                value={c.contentData}
-                onChange={(e) => {
-                  const newContents = [...contents];
-                  newContents[i].contentData = e.target.value;
-                  setContents(newContents);
-                }}
-              />
+              <>
+                {c.contentData && (
+                  <div className="text-sm text-gray-600 mb-1">
+                    Link saat ini:{' '}
+                    <a
+                      href={c.contentData}
+                      target="_blank"
+                      className="underline text-blue-600"
+                    >
+                      {c.contentData}
+                    </a>
+                  </div>
+                )}
+                <Input
+                  placeholder="https://..."
+                  value={c.contentData}
+                  onChange={(e) => {
+                    const newContents = [...contents];
+                    newContents[i].contentData = e.target.value;
+                    setContents(newContents);
+                  }}
+                />
+              </>
             )}
 
             {c.type === 'VIDEO' && (
@@ -216,10 +258,10 @@ export default function AddModulePage() {
 
           <Button
             className="w-full sm:w-auto bg-blue-600 text-white hover:bg-blue-800"
-            onClick={handleSubmit}
+            onClick={handleUpdate}
             disabled={title.trim() === ''}
           >
-            Simpan Modul
+            Perbarui Modul
           </Button>
         </div>
       </div>

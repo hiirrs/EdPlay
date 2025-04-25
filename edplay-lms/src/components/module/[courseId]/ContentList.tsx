@@ -86,6 +86,19 @@ export default function ContentList<T extends { id: number }>({
     }
   };
 
+  const handleEditClick = (itemId: number) => {
+    if(!courseId) return;
+    const basePath = {
+      modul: 'module',
+      tugas: 'assignment',
+      ujian: 'quiz',
+    }[typeLabel.toLocaleLowerCase() as 'modul' | 'tugas' | 'ujian'];
+
+    if (basePath) {
+      router.push(`/${basePath}/${courseId}/edit/${itemId}`);
+    }
+  }
+
   return (
     <div className="border rounded-lg overflow-hidden bg-white">
       {showConfirmModal && selectedItemId !== null && selectedType && (
@@ -148,7 +161,7 @@ export default function ContentList<T extends { id: number }>({
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={() => alert(`Edit ${typeLabel} ${item.id}`)}
+                onClick={() => handleEditClick(item.id)}
                 className="text-blue-600 hover:text-blue-800"
               >
                 <Pencil size={16} />
