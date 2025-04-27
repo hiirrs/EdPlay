@@ -3,6 +3,7 @@
  */
 import { createCallerFactory, publicProcedure, router } from '../trpc';
 import { assignmentRouter } from './assignment';
+import { assignmentSubmissionRouter } from './assignmentSubmisson';
 import { courseRouter } from './course';
 import { moduleRouter } from './module';
 import { postRouter } from './post';
@@ -20,6 +21,7 @@ export const appRouter = router({
   module: moduleRouter,
   assignment: assignmentRouter,
   quiz: quizRouter,
+  assignmentSubmisssion: assignmentSubmissionRouter,
 });
 
 export const createCaller = createCallerFactory(appRouter);

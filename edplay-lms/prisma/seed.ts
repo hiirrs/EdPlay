@@ -4,18 +4,17 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Hash passwords
   const hashedAdminPassword = await bcrypt.hash("adminpassword", 10);
   const hashedTeacherPassword = await bcrypt.hash("securepassword", 10);
   const hashedStudentPassword = await bcrypt.hash("anotherpassword", 10);
 
-  // Optionally clear existing data
   await prisma.answer.deleteMany({});
   await prisma.question.deleteMany({});
   await prisma.quiz.deleteMany({});
   await prisma.moduleContent.deleteMany({});
   await prisma.module.deleteMany({});
-  await prisma.submission.deleteMany({});
+  await prisma.assignmentSubmission.deleteMany({});
+  await prisma.assignmentContent.deleteMany({});
   await prisma.assignment.deleteMany({});
   await prisma.enrollment.deleteMany({});
   await prisma.course.deleteMany({});
@@ -25,6 +24,7 @@ async function main() {
   await prisma.school.deleteMany({});
   await prisma.post.deleteMany({});
 
+  // Create school
   const school = await prisma.school.create({
     data: {
       sch_name: "EdPlay Academy",
@@ -33,6 +33,7 @@ async function main() {
     },
   });
 
+  // Create users
   await prisma.user.create({
     data: {
       username: "admin",
@@ -66,6 +67,7 @@ async function main() {
     },
   });
 
+  // Create course
   const course = await prisma.course.create({
     data: {
       name: "Mathematics 101",
@@ -77,6 +79,7 @@ async function main() {
     },
   });
 
+  // Enroll student
   await prisma.enrollment.create({
     data: {
       userId: student.user_id,
@@ -85,26 +88,37 @@ async function main() {
     },
   });
 
+  // Create assignment
   const assignment = await prisma.assignment.create({
     data: {
       courseId: course.id,
       title: "Algebra Homework",
       description: "Solve the algebra problems in chapter 2.",
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      allowResubmission: false,
-      maxUploadSize: 1048576,
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
     },
   });
 
-  await prisma.submission.create({
+  // Create assignment content
+  await prisma.assignmentContent.create({
     data: {
       assignmentId: assignment.id,
-      studentId: student.user_id,
-      filePath: "/submissions/algebra_homework_jane.pdf",
-      isFinal: true,
+      contentTitle: "Instructions",
+      contentType: "TEXT",
+      contentData: "Please solve problems 1-10 on page 45.",
     },
   });
 
+  // Create assignment submission
+  await prisma.assignmentSubmission.create({
+    data: {
+      assignmentId: assignment.id,
+      userId: student.user_id, // corrected from studentId -> userId
+      answerText: "I have completed the assignment.",
+      answerFile: "/submissions/algebra_homework_jane.pdf",
+    },
+  });
+
+  // Create module
   const moduleRecord = await prisma.module.create({
     data: {
       courseId: course.id,
@@ -122,6 +136,7 @@ async function main() {
     },
   });
 
+  // Create quiz
   const quiz = await prisma.quiz.create({
     data: {
       courseId: course.id,
@@ -170,7 +185,7 @@ async function main() {
     },
   });
 
-  console.log("Seeding completed successfully!");
+  console.log("✅ Seeding completed successfully!");
 }
 
 main()

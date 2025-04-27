@@ -41,22 +41,22 @@ export default function ContentView({
   description,
 }: ContentViewProps) {
   return (
-    <div className="space-y-4 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold px-4 pt-4">{title}</h2>
-      <p className="text-gray-600 px-4">{description}</p>
+    <div className="bg-white rounded-lg">
+      <h2 className="text-2xl font-bold">{title}</h2>
+      <p className="text-gray-600">{description}</p>
 
-      <Accordion type="multiple" className="px-4 py-2">
+      <Accordion type="multiple" className="py-2">
         {contents.length > 0 ? (
           contents.map((content) => (
             <AccordionItem
               key={content.id}
               value={`content-${content.id}`}
-              className="border rounded-lg overflow-hidden mb-4"
+              className="border rounded-lg overflow-hidden mb-2"
             >
-              <AccordionTrigger className="px-4 py-3 font-semibold">
+              <AccordionTrigger className="p-2 font-semibold border-b bg-slate-100">
                 {content.contentTitle}
               </AccordionTrigger>
-              <AccordionContent className="px-4 py-6 space-y-6">
+              <AccordionContent className="p-2">
                 {content.contentType === 'TEXT' && (
                   <div
                     className="prose max-w-none"

@@ -4,6 +4,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '~/components/ui/button';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface ContentListProps<T> {
   items: T[];
@@ -14,6 +15,11 @@ interface ContentListProps<T> {
   isTeacher?: boolean;
   courseId?: number;
   onDelete: (id: number, type: 'modul' | 'tugas' | 'ujian') => void;
+  viewMode: 'default' | 'submissionList';
+  setViewMode: React.Dispatch<
+    React.SetStateAction<'default' | 'submissionList'>
+  >;
+  setActiveId: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
 function getColor(typeLabel: string) {
@@ -65,13 +71,18 @@ export default function ContentList<T extends { id: number }>({
   isTeacher = false,
   courseId,
   onDelete,
+  viewMode,
+  setViewMode,
+  // setActiveId,
 }: ContentListProps<T>) {
   const color = getColor(typeLabel);
   const router = useRouter();
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [selectedType, setSelectedType] = useState<'modul' | 'tugas' | 'ujian' | null>(null);
+  const [selectedType, setSelectedType] = useState<
+    'modul' | 'tugas' | 'ujian' | null
+  >(null);
 
   const handleAddClick = () => {
     if (!courseId) return;
@@ -80,10 +91,7 @@ export default function ContentList<T extends { id: number }>({
       tugas: 'assignment',
       ujian: 'quiz',
     }[typeLabel.toLowerCase() as 'modul' | 'tugas' | 'ujian'];
-
-    if (path) {
-      router.push(`/${path}/${courseId}/add`);
-    }
+    if (path) router.push(`${courseId}/${path}/add`);
   };
 
   const handleEditClick = (itemId: number) => {
@@ -93,10 +101,7 @@ export default function ContentList<T extends { id: number }>({
       tugas: 'assignment',
       ujian: 'quiz',
     }[typeLabel.toLowerCase() as 'modul' | 'tugas' | 'ujian'];
-
-    if (path) {
-      router.push(`/${path}/${courseId}/edit/${itemId}`);
-    }
+    if (path) router.push(`${courseId}/${path}/${itemId}/edit`);
   };
 
   const handleConfirmDelete = () => {
@@ -109,13 +114,16 @@ export default function ContentList<T extends { id: number }>({
   return (
     <>
       {/* Modal Konfirmasi */}
-      {showConfirmModal && selectedItemId !== null && selectedType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg space-y-4">
             <h2 className="text-lg font-semibold">Konfirmasi Hapus</h2>
             <p>Apakah Anda yakin ingin menghapus {selectedType} ini?</p>
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmModal(false)}
+              >
                 Batal
               </Button>
               <Button
@@ -129,57 +137,129 @@ export default function ContentList<T extends { id: number }>({
         </div>
       )}
 
-      {/* Tombol tambah */}
+      {/* Tombol di atas List */}
       {isTeacher && (
-        <div className="flex mb-4 w-full">
-          <Button onClick={handleAddClick} className={`${color.addBtn} w-full text-white text-xs hover:opacity-80 transition`}>
-            + Tambah {typeLabel}
-          </Button>
+        <div className="flex flex-col gap-2 p-2">
+          {/* Toggle List Murid / List Tugas */}
+          {typeLabel.toLowerCase() === 'tugas' && (
+            <Button
+              disabled={!activeId}
+              onClick={() => {
+                if (!activeId) return;
+                setViewMode((prev) =>
+                  prev === 'default' ? 'submissionList' : 'default',
+                );
+              }}
+              className={`w-full text-xs transition ${
+                viewMode === 'submissionList'
+                  ? 'bg-green-700 hover:bg-green-800 text-white'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
+            >
+              {viewMode === 'default' ? 'List Murid' : 'List Tugas'}
+            </Button>
+          )}
+
+          {viewMode === 'submissionList' && (
+            <Button
+              onClick={() => {
+                if (!activeId) return;
+                setViewMode((prev) =>
+                  prev === 'default' ? 'submissionList' : 'default',
+                );
+              }}
+              className={`w-full text-xs transition ${
+                viewMode === 'submissionList'
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
+            >
+              {viewMode === 'submissionList' ? 'List Tugas' : 'List Murid'}
+            </Button>
+          )}
+
+          <Button
+              onClick={handleAddClick}
+              className={`${color.addBtn} w-full text-white text-xs hover:opacity-80 transition`}
+            >
+              + Tambah {typeLabel}
+            </Button>
         </div>
       )}
 
-      {/* Daftar List Items */}
-      <div className="border rounded-lg overflow-hidden bg-white">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={`flex items-center justify-between p-2 border-b last:border-b-0 cursor-pointer transition-colors w-full ${
-              activeId === item.id ? color.activeBg : 'hover:bg-gray-50'
-            }`}
-            onClick={() => onSelect(item.id)}
-          >
-            {/* Kiri */}
-            <div className="flex items-center gap-2 w-full">
-              <div className={`${color.badge} rounded-md text-center w-14 py-1 border`}>
-                <div className="text-xs font-medium">{typeLabel}</div>
-                <div className="font-bold">{item.id}</div>
-              </div>
-              <span className="text-sm font-semibold">{renderTitle(item)}</span>
-            </div>
-
-            {/* Kanan */}
-            {isTeacher && (
-              <div
-                className="flex items-center gap-2 pr-2"
-                onClick={(e) => e.stopPropagation()}
+      {/* List Item */}
+      <div className="overflow-hidden bg-white rounded-lg shadow-md mt-2">
+        <AnimatePresence mode="wait">
+          {items.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
+              className="p-6 text-center text-gray-400 text-sm"
+            >
+              Belum ada data
+            </motion.div>
+          ) : (
+            items.map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.2 }}
+                className={`flex items-center justify-between p-3 border-t cursor-pointer transition-colors w-full ${
+                  activeId === item.id ? color.activeBg : 'hover:bg-gray-50'
+                }`}
+                onClick={() => onSelect(item.id)}
               >
-                <button onClick={() => handleEditClick(item.id)} className={color.icon}>
-                  <Pencil size={16} />
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedItemId(item.id);
-                    setSelectedType(typeLabel.toLowerCase() as 'modul' | 'tugas' | 'ujian');
-                    setShowConfirmModal(true);
-                  }}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+                <div className="flex items-center gap-4 w-full">
+                  <div
+                    className={`${color.badge} rounded-md text-center w-14 py-1 border`}
+                  >
+                    <div className="text-xs font-medium">{typeLabel}</div>
+                    <div className="font-bold">{item.id}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">
+                      {renderTitle(item)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tombol Edit dan Delete */}
+                {isTeacher && (
+                  <div
+                    className="flex items-center gap-2 pl-2 pr-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => handleEditClick(item.id)}
+                      className={color.icon}
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedItemId(item.id);
+                        setSelectedType(
+                          typeLabel.toLowerCase() as
+                            | 'modul'
+                            | 'tugas'
+                            | 'ujian',
+                        );
+                        setShowConfirmModal(true);
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            ))
+          )}
+        </AnimatePresence>
       </div>
     </>
   );
