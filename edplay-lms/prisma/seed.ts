@@ -116,6 +116,7 @@ async function main() {
   await prisma.moduleContent.create({
     data: {
       moduleId: moduleRecord.id,
+      contentTitle: "Module Overview",
       contentType: "TEXT",
       contentData: "This module covers the fundamentals of algebra including variables, equations, and functions.",
     },

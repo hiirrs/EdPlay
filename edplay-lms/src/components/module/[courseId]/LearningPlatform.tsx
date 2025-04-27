@@ -82,10 +82,12 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
           title={item.title}
           contents={item.contents.map((c) => ({
             id: c.id,
+            contentTitle: c.contentTitle,
             contentType: c.contentType.toUpperCase() as 'TEXT' | 'VIDEO' | 'FILE' | 'LINK',
             contentData: c.contentData,
-            fileUrl: c.filePath ?? undefined
+            filePath: c.filePath ?? undefined
           }))}
+          description={item.description || ''}
         />
       );
     }

@@ -10,15 +10,25 @@ import dynamic from 'next/dynamic';
 
 type ContentData = {
   id: number;
+  contentTitle: string;
   contentType: 'TEXT' | 'VIDEO' | 'FILE' | 'LINK';
   contentData: string;
-  fileUrl?: string;
+  filePath?: string;
 };
 
 interface ContentViewProps {
   title: string;
   contents: ContentData[];
   description?: string;
+}
+
+function convertYoutubeToEmbedUrl(url: string) {
+  const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/;
+  const match = regex.exec(url);
+  if (match?.[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`;
+  }
+  return url; // fallback
 }
 
 const PdfViewer = dynamic(() => import('~/components/PdfViewer'), {
@@ -31,59 +41,58 @@ export default function ContentView({
   description,
 }: ContentViewProps) {
   return (
-    <div className="space-y-4 bg-white">
-      <Accordion type="single" collapsible defaultValue="section-1">
-        <AccordionItem
-          value="section-1"
-          className="border rounded-lg overflow-hidden mb-4"
-        >
-          <AccordionTrigger className="px-4 py-3 font-semibold text-lg">
-            {title}
-          </AccordionTrigger>
-          <AccordionContent className="px-4 py-6 space-y-6">
-            {contents.length > 0 ? (
-              contents.map((content) => (
-                <div key={content.id}>
-                  {content.contentType === 'TEXT' && (
-                    <div
-                      className="prose max-w-none"
-                      dangerouslySetInnerHTML={{ __html: content.contentData }}
+    <div className="space-y-4 bg-white shadow-md rounded-lg">
+      <h2 className="text-2xl font-bold px-4 pt-4">{title}</h2>
+      <p className="text-gray-600 px-4">{description}</p>
+
+      <Accordion type="multiple" className="px-4 py-2">
+        {contents.length > 0 ? (
+          contents.map((content) => (
+            <AccordionItem
+              key={content.id}
+              value={`content-${content.id}`}
+              className="border rounded-lg overflow-hidden mb-4"
+            >
+              <AccordionTrigger className="px-4 py-3 font-semibold">
+                {content.contentTitle}
+              </AccordionTrigger>
+              <AccordionContent className="px-4 py-6 space-y-6">
+                {content.contentType === 'TEXT' && (
+                  <div
+                    className="prose max-w-none"
+                    dangerouslySetInnerHTML={{ __html: content.contentData }}
+                  />
+                )}
+                {content.contentType === 'VIDEO' && (
+                  <div className="aspect-video">
+                    <iframe
+                      src={convertYoutubeToEmbedUrl(content.contentData)}
+                      className="w-full h-full rounded"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
-                  )}
-                  {content.contentType === 'VIDEO' && (
-                    <div className="aspect-w-16 aspect-h-9">
-                      <iframe
-                        src={
-                          content.contentData.includes('youtube.com')
-                            ? content.contentData.replace('watch?v=', 'embed/')
-                            : content.contentData
-                        }
-                        className="w-full h-full rounded"
-                        allowFullScreen
-                      />
-                    </div>
-                  )}
-                  {content.contentType === 'FILE' && content.fileUrl && (
-                    <PdfViewer fileUrl={content.fileUrl} />
-                  )}
-                  {content.contentType === 'LINK' && (
-                    <a
-                      href={content.contentData}
-                      target="_blank"
-                      className="text-blue-600 underline"
-                    >
-                      {content.contentData}
-                    </a>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">
-                {description || 'Belum ada konten.'}
-              </p>
-            )}
-          </AccordionContent>
-        </AccordionItem>
+                  </div>
+                )}
+
+                {content.contentType === 'FILE' && content.filePath && (
+                  <PdfViewer filePath={content.filePath} />
+                )}
+                {content.contentType === 'LINK' && (
+                  <a
+                    href={content.contentData}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
+                    {content.contentData}
+                  </a>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          ))
+        ) : (
+          <p className="text-gray-600">Belum ada konten.</p>
+        )}
       </Accordion>
     </div>
   );

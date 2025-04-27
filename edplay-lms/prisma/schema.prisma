@@ -132,13 +132,14 @@ model Module {
 }
 
 model ModuleContent {
-  id          Int       @id @default(autoincrement())
-  moduleId    Int
-  module      Module    @relation(fields: [moduleId], references: [id])
-  contentType ContentType
-  contentData String
-  filePath    String?    
-  createdAt   DateTime @default(now())
+  id           Int       @id @default(autoincrement())
+  moduleId     Int
+  module       Module    @relation(fields: [moduleId], references: [id])
+  contentTitle String    @default("")
+  contentType  ContentType
+  contentData  String
+  filePath     String?    
+  createdAt    DateTime  @default(now())
 }
 
 model Quiz {

@@ -1,7 +1,7 @@
 'use client';
 
 import { Pencil, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '~/components/ui/button';
 
@@ -71,46 +71,43 @@ export default function ContentList<T extends { id: number }>({
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [selectedType, setSelectedType] = useState<
-    'modul' | 'tugas' | 'ujian' | null
-  >(null);
+  const [selectedType, setSelectedType] = useState<'modul' | 'tugas' | 'ujian' | null>(null);
 
   const handleAddClick = () => {
     if (!courseId) return;
-    if (typeLabel.toLowerCase() === 'modul') {
-      router.push(`/module/${courseId}/add`);
-    } else if (typeLabel.toLowerCase() === 'tugas') {
-      router.push(`/assignment/${courseId}/add`);
-    } else if (typeLabel.toLowerCase() === 'ujian') {
-      router.push(`/quiz/${courseId}/add`);
+    const path = {
+      modul: 'module',
+      tugas: 'assignment',
+      ujian: 'quiz',
+    }[typeLabel.toLowerCase() as 'modul' | 'tugas' | 'ujian'];
+
+    if (path) {
+      router.push(`/${path}/${courseId}/add`);
     }
   };
 
   const handleEditClick = (itemId: number) => {
-    if(!courseId) return;
-    const basePath = {
+    if (!courseId) return;
+    const path = {
       modul: 'module',
       tugas: 'assignment',
       ujian: 'quiz',
-    }[typeLabel.toLocaleLowerCase() as 'modul' | 'tugas' | 'ujian'];
+    }[typeLabel.toLowerCase() as 'modul' | 'tugas' | 'ujian'];
 
-    if (basePath) {
-      router.push(`/${basePath}/${courseId}/edit/${itemId}`);
+    if (path) {
+      router.push(`/${path}/${courseId}/edit/${itemId}`);
     }
-  }
+  };
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
+    <>
       {showConfirmModal && selectedItemId !== null && selectedType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg space-y-4">
             <h2 className="text-lg font-semibold">Konfirmasi Hapus</h2>
             <p>Apakah Anda yakin ingin menghapus {selectedType} ini?</p>
             <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirmModal(false)}
-              >
+              <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
                 Batal
               </Button>
               <Button
@@ -126,62 +123,61 @@ export default function ContentList<T extends { id: number }>({
           </div>
         </div>
       )}
+
+      {/* Tombol tambah di atas */}
       {isTeacher && (
-        <div className="flex justify-end p-2">
-          <button
-            onClick={() => handleAddClick()}
-            className={`${color.addBtn} text-white text-xs px-3 py-1 rounded hover:bg-green-600`}
-          >
+        <div className="flex mb-4 w-full">
+          <Button onClick={handleAddClick} className={`${color.addBtn} text-white text-xs w-full hover:opacity-80 transition`}>
             + Tambah {typeLabel}
-          </button>
+          </Button>
         </div>
       )}
 
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className={`flex items-center justify-between p-2 border-b last:border-b-0 cursor-pointer 
-            transition-colors ${activeId === item.id ? color.activeBg : 'hover:bg-gray-50'}`}
-          onClick={() => onSelect(item.id)}
-        >
-          {/* Left info */}
-          <div className="flex items-center gap-2">
-            <div
-              className={`${color.badge} text-[#2E3E83] rounded-md text-center w-14 py-1 border border-yellow-400`}
-            >
-              <div className="text-xs font-medium">{typeLabel}</div>
-              <div className="font-bold">{item.id}</div>
+      {/* List Items */}
+      <div className="border rounded-lg overflow-hidden bg-white">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className={`flex items-center justify-between p-2 border-b last:border-b-0 cursor-pointer transition-colors w-full${
+              activeId === item.id ? color.activeBg : 'hover:bg-gray-50'
+            }`}
+            onClick={() => onSelect(item.id)}
+          >
+            {/* Left info */}
+            <div className="flex items-center gap-2">
+              <div
+                className={`${color.badge} text-[#2E3E83] rounded-md text-center w-14 py-1 border`}
+              >
+                <div className="text-xs font-medium">{typeLabel}</div>
+                <div className="font-bold">{item.id}</div>
+              </div>
+              <span className="text-sm font-semibold">{renderTitle(item)}</span>
             </div>
-            <span className="text-sm font-semibold">{renderTitle(item)}</span>
-          </div>
 
-          {isTeacher && (
-            <div
-              className="flex items-center gap-2 pr-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => handleEditClick(item.id)}
-                className="text-blue-600 hover:text-blue-800"
+            {/* Right action */}
+            {isTeacher && (
+              <div
+                className="flex items-center gap-2 pr-2"
+                onClick={(e) => e.stopPropagation()}
               >
-                <Pencil size={16} />
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedItemId(item.id);
-                  setSelectedType(
-                    typeLabel.toLowerCase() as 'modul' | 'tugas' | 'ujian',
-                  );
-                  setShowConfirmModal(true);
-                }}
-                className="text-red-600 hover:text-red-800"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+                <button onClick={() => handleEditClick(item.id)} className={color.icon}>
+                  <Pencil size={16} />
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedItemId(item.id);
+                    setSelectedType(typeLabel.toLowerCase() as 'modul' | 'tugas' | 'ujian');
+                    setShowConfirmModal(true);
+                  }}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

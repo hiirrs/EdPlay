@@ -21,7 +21,15 @@ export const moduleRouter = router({
       return prisma.module.findUnique({
         where: { id: input.id },
         include: {
-          contents: true,
+          contents: {
+            select: {
+              id: true,
+              contentType: true,
+              contentData: true,
+              filePath: true,
+              contentTitle: true,
+            },
+          },
         },
       });
     }),
@@ -34,6 +42,7 @@ export const moduleRouter = router({
         description: z.string().optional(),
         contents: z.array(
           z.object({
+            contentTitle: z.string(),
             contentType: z.enum(["TEXT", "FILE", "LINK", "VIDEO"]),
             contentData: z.string(),
             filePath: z.string().optional(),
@@ -49,8 +58,9 @@ export const moduleRouter = router({
           description: input.description,
           contents: {
             create: input.contents.map((c) => ({
+              contentTitle: c.contentTitle,
               contentType: ContentType[c.contentType.toUpperCase() as keyof typeof ContentType],
-              contentData: c.contentType === "TEXT" ? sanitize(c.contentData) : c.contentData, 
+              contentData: c.contentType === "TEXT" ? sanitize(c.contentData) : c.contentData,
               filePath: c.filePath,
             })),
           },
@@ -73,6 +83,7 @@ export const moduleRouter = router({
         description: z.string().optional(),
         contents: z.array(
           z.object({
+            contentTitle: z.string(),
             contentType: z.enum(['TEXT', 'FILE', 'LINK', 'VIDEO']),
             contentData: z.string(),
             filePath: z.string().optional(),
@@ -90,6 +101,7 @@ export const moduleRouter = router({
           contents: {
             createMany: {
               data: input.contents.map((c) => ({
+                contentTitle: c.contentTitle,
                 contentType: ContentType[c.contentType.toUpperCase() as keyof typeof ContentType],
                 contentData: c.contentData,
                 filePath: c.filePath,

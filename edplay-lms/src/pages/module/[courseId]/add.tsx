@@ -1,51 +1,46 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { trpc } from '~/utils/trpc';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Button } from '~/components/ui/button';
 import { toast } from 'react-hot-toast';
-import RichTextEditor from '~/components/RichTextEditor';
-import { sanitize } from '~/utils/sanitize';
 import { Trash2 } from 'lucide-react';
+import { useContentStore } from '~/stores/contentStore';
+import { sanitize } from '~/utils/sanitize';
+import RichTextEditor from '~/components/RichTextEditor';
 
 export default function AddModulePage() {
   const router = useRouter();
   const params = useParams();
-  const courseIdParam = params?.courseId as string;
-  const [courseId, setCourseId] = useState<number | null>(null);
-
-  useEffect(() => {
-    const id = Number(courseIdParam);
-    if (!isNaN(id)) setCourseId(id);
-  }, [courseIdParam]);
+  const courseId = Number(params?.courseId);
+  
+  const { contents, addContent, updateContent, removeContent, resetContents } = useContentStore();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [contents, setContents] = useState<
-    {
-      type: 'TEXT' | 'FILE' | 'LINK' | 'VIDEO';
-      contentData: string;
-      file?: File;
-    }[]
-  >([]);
 
   const addModule = trpc.module.create.useMutation({
     onSuccess: () => {
       toast.success('Modul berhasil ditambahkan');
+      resetContents();
       router.back();
     },
     onError: () => toast.error('Gagal menambahkan modul'),
   });
+
+  const handleAddContent = () => {
+    addContent({
+      id: Date.now(),
+      contentTitle: '',
+      contentType: 'TEXT',
+      contentData: '',
+      filePath: undefined,
+    });
+  };
 
   const handleSubmit = async () => {
     if (!courseId) return;
@@ -55,24 +50,16 @@ export default function AddModulePage() {
       return;
     }
 
-    if (contents.some((c) => !c.type)) {
-      toast.error('Semua konten harus memiliki tipe');
-      return;
-    }
-
     const uploads = await Promise.all(
       contents.map(async (c) => {
-        if (c.type === 'FILE' && c.file) {
+        if (c.contentType === 'FILE' && c.file) {
           const formData = new FormData();
-          formData.append('FILE', c.file);
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
+          formData.append('file', c.file);
+          const res = await fetch('/api/upload', { method: 'POST', body: formData });
           const { path } = await res.json();
-          return { ...c, contentData: '', filePath: path };
+          return { ...c, filePath: path };
         }
-        return { ...c, filePath: undefined };
+        return c;
       }),
     );
 
@@ -81,123 +68,75 @@ export default function AddModulePage() {
       title,
       description,
       contents: uploads.map((c) => ({
-        contentType: c.type,
-        contentData:
-          c.type === 'TEXT' ? sanitize(c.contentData) : c.contentData,
+        contentTitle: c.contentTitle,
+        contentType: c.contentType,
+        contentData: c.contentType === 'TEXT' ? sanitize(c.contentData) : c.contentData,
         filePath: c.filePath,
       })),
     });
   };
 
-  if (!courseId) return <p className="text-center mt-10">Loading...</p>;
-
   return (
     <div className="min-h-screen bg-[#FDF8F4] px-4 py-4">
       <div className="w-full px-4 sm:px-6 md:px-10 max-w-3xl mx-auto mt-6 md:mt-10 space-y-4 bg-white rounded-lg shadow-md p-6">
-        <Button
-          variant="ghost"
-          className="text-[#f4aa1f] hover:bg-gray-100 px-1 py-4"
-          onClick={() => router.back()}
-        >
-          ← Kembali
-        </Button>
-
+        <Button variant="ghost" onClick={() => router.back()}>← Kembali</Button>
         <h1 className="text-2xl font-bold">Tambah Modul</h1>
 
-        <Input
-          className="border rounded-md px-4 py-0"
-          placeholder="Judul Modul"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <Textarea
-          placeholder="Deskripsi"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Judul Modul" />
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Deskripsi" />
 
-        {contents.map((c, i) => (
-          <div
-            key={i}
-            className="border p-4 rounded-md space-y-2 bg-[#FDFDFD] shadow-sm"
-          >
-            <div className="flex justify-between items-center">
+        {contents.map((c) => (
+          <div key={c.id} className="border p-4 rounded-md bg-[#FDFDFD] shadow-sm space-y-2">
+            <Input
+              value={c.contentTitle}
+              onChange={(e) => updateContent(c.id, { contentTitle: e.target.value })}
+              placeholder="Judul Konten"
+            />
+            <div className="flex items-center gap-2">
               <Select
-                value={c.type}
-                onValueChange={(val) => {
-                  const newContents = [...contents];
-                  newContents[i].type = val as any;
-                  setContents(newContents);
-                }}
+                value={c.contentType}
+                onValueChange={(val) => updateContent(c.id, { contentType: val as 'TEXT' | 'VIDEO' | 'FILE' | 'LINK' })}
               >
-                <SelectTrigger className="w-full max-w-full mr-1">
+                <SelectTrigger className="w-full max-w-full">
                   <SelectValue placeholder="Pilih tipe konten" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TEXT">Text</SelectItem>
-                  <SelectItem value="FILE">File (PDF, PPT)</SelectItem>
+                  <SelectItem value="FILE">File</SelectItem>
                   <SelectItem value="LINK">Link</SelectItem>
-                  <SelectItem value="VIDEO">YouTube</SelectItem>
+                  <SelectItem value="VIDEO">Video</SelectItem>
                 </SelectContent>
               </Select>
-
-              <div title="Hapus konten ini">
-                <Trash2
-                  onClick={() => {
-                    const newContents = [...contents];
-                    newContents.splice(i, 1);
-                    setContents(newContents);
-                  }}
-                  className="ml-4 -mt-2 text-red-600 hover:text-red-800"
-                />
-              </div>
+              <Trash2 onClick={() => removeContent(c.id)} className="text-red-600 hover:text-red-800 cursor-pointer" />
             </div>
 
-            {c.type === 'TEXT' && (
+            {c.contentType === 'TEXT' && (
               <RichTextEditor
                 content={c.contentData}
-                onChange={(val) => {
-                  const newContents = [...contents];
-                  newContents[i].contentData = val;
-                  setContents(newContents);
-                }}
+                onChange={(val) => updateContent(c.id, { contentData: val })}
               />
             )}
-
-            {c.type === 'FILE' && (
+            {c.contentType === 'LINK' && (
+              <Input
+                value={c.contentData}
+                placeholder="https://..."
+                onChange={(e) => updateContent(c.id, { contentData: e.target.value })}
+              />
+            )}
+            {c.contentType === 'VIDEO' && (
+              <Input
+                value={c.contentData}
+                placeholder="YouTube Link"
+                onChange={(e) => updateContent(c.id, { contentData: e.target.value })}
+              />
+            )}
+            {c.contentType === 'FILE' && (
               <Input
                 type="file"
-                accept="application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const newContents = [...contents];
-                  newContents[i].file = file;
-                  setContents(newContents);
-                }}
-              />
-            )}
-
-            {c.type === 'LINK' && (
-              <Input
-                placeholder="https://..."
-                value={c.contentData}
-                onChange={(e) => {
-                  const newContents = [...contents];
-                  newContents[i].contentData = e.target.value;
-                  setContents(newContents);
-                }}
-              />
-            )}
-
-            {c.type === 'VIDEO' && (
-              <Input
-                placeholder="YouTube Video ID"
-                value={c.contentData}
-                onChange={(e) => {
-                  const newContents = [...contents];
-                  newContents[i].contentData = e.target.value;
-                  setContents(newContents);
+                  updateContent(c.id, { file: file });
                 }}
               />
             )}
@@ -205,22 +144,8 @@ export default function AddModulePage() {
         ))}
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button
-            onClick={() =>
-              setContents([...contents, { type: 'TEXT', contentData: '' }])
-            }
-            className="w-full sm:w-auto bg-black text-white hover:bg-zinc-800"
-          >
-            + Tambah Konten
-          </Button>
-
-          <Button
-            className="w-full sm:w-auto bg-blue-600 text-white hover:bg-blue-800"
-            onClick={handleSubmit}
-            disabled={title.trim() === ''}
-          >
-            Simpan Modul
-          </Button>
+          <Button onClick={handleAddContent} className="bg-black text-white">+ Tambah Konten</Button>
+          <Button onClick={handleSubmit} className="bg-blue-600 text-white" disabled={!title.trim()}>Simpan Modul</Button>
         </div>
       </div>
     </div>
