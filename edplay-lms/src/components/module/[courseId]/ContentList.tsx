@@ -99,8 +99,16 @@ export default function ContentList<T extends { id: number }>({
     }
   };
 
+  const handleConfirmDelete = () => {
+    if (selectedItemId !== null && selectedType) {
+      onDelete(selectedItemId, selectedType);
+      setShowConfirmModal(false);
+    }
+  };
+
   return (
     <>
+      {/* Modal Konfirmasi */}
       {showConfirmModal && selectedItemId !== null && selectedType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg space-y-4">
@@ -112,10 +120,7 @@ export default function ContentList<T extends { id: number }>({
               </Button>
               <Button
                 className="bg-red-600 text-white hover:bg-red-700"
-                onClick={() => {
-                  onDelete(selectedItemId, selectedType);
-                  setShowConfirmModal(false);
-                }}
+                onClick={handleConfirmDelete}
               >
                 Hapus
               </Button>
@@ -124,37 +129,35 @@ export default function ContentList<T extends { id: number }>({
         </div>
       )}
 
-      {/* Tombol tambah di atas */}
+      {/* Tombol tambah */}
       {isTeacher && (
         <div className="flex mb-4 w-full">
-          <Button onClick={handleAddClick} className={`${color.addBtn} text-white text-xs w-full hover:opacity-80 transition`}>
+          <Button onClick={handleAddClick} className={`${color.addBtn} w-full text-white text-xs hover:opacity-80 transition`}>
             + Tambah {typeLabel}
           </Button>
         </div>
       )}
 
-      {/* List Items */}
+      {/* Daftar List Items */}
       <div className="border rounded-lg overflow-hidden bg-white">
         {items.map((item) => (
           <div
             key={item.id}
-            className={`flex items-center justify-between p-2 border-b last:border-b-0 cursor-pointer transition-colors w-full${
+            className={`flex items-center justify-between p-2 border-b last:border-b-0 cursor-pointer transition-colors w-full ${
               activeId === item.id ? color.activeBg : 'hover:bg-gray-50'
             }`}
             onClick={() => onSelect(item.id)}
           >
-            {/* Left info */}
-            <div className="flex items-center gap-2">
-              <div
-                className={`${color.badge} text-[#2E3E83] rounded-md text-center w-14 py-1 border`}
-              >
+            {/* Kiri */}
+            <div className="flex items-center gap-2 w-full">
+              <div className={`${color.badge} rounded-md text-center w-14 py-1 border`}>
                 <div className="text-xs font-medium">{typeLabel}</div>
                 <div className="font-bold">{item.id}</div>
               </div>
               <span className="text-sm font-semibold">{renderTitle(item)}</span>
             </div>
 
-            {/* Right action */}
+            {/* Kanan */}
             {isTeacher && (
               <div
                 className="flex items-center gap-2 pr-2"

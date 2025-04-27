@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { trpc } from '~/utils/trpc';
 import { Input } from '~/components/ui/input';
@@ -9,21 +9,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Button } from '~/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { Trash2 } from 'lucide-react';
-import { useContentStore } from '~/stores/contentStore';
 import { sanitize } from '~/utils/sanitize';
+import { useContentStore } from '~/stores/contentStore';
 import RichTextEditor from '~/components/RichTextEditor';
 
 export default function AddModulePage() {
   const router = useRouter();
   const params = useParams();
-  const courseId = Number(params?.courseId);
-  
-  const { contents, addContent, updateContent, removeContent, resetContents } = useContentStore();
+  const courseIdParam = params?.courseId as string;
+  const courseId = Number(courseIdParam);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  const addModule = trpc.module.create.useMutation({
+  const { contents, addContent, updateContent, removeContent, resetContents } = useContentStore();
+
+  useEffect(() => {
+    resetContents(); // 🧹 Bersihkan konten begitu page Add Modul dibuka
+  }, [resetContents]);
+
+  const createModule = trpc.module.create.useMutation({
     onSuccess: () => {
       toast.success('Modul berhasil ditambahkan');
       resetContents();
@@ -32,19 +37,8 @@ export default function AddModulePage() {
     onError: () => toast.error('Gagal menambahkan modul'),
   });
 
-  const handleAddContent = () => {
-    addContent({
-      id: Date.now(),
-      contentTitle: '',
-      contentType: 'TEXT',
-      contentData: '',
-      filePath: undefined,
-    });
-  };
-
   const handleSubmit = async () => {
     if (!courseId) return;
-
     if (!title.trim()) {
       toast.error('Judul modul tidak boleh kosong');
       return;
@@ -60,10 +54,10 @@ export default function AddModulePage() {
           return { ...c, filePath: path };
         }
         return c;
-      }),
+      })
     );
 
-    addModule.mutate({
+    createModule.mutate({
       courseId,
       title,
       description,
@@ -78,8 +72,11 @@ export default function AddModulePage() {
 
   return (
     <div className="min-h-screen bg-[#FDF8F4] px-4 py-4">
-      <div className="w-full px-4 sm:px-6 md:px-10 max-w-3xl mx-auto mt-6 md:mt-10 space-y-4 bg-white rounded-lg shadow-md p-6">
-        <Button variant="ghost" onClick={() => router.back()}>← Kembali</Button>
+      <div className="w-full max-w-3xl mx-auto space-y-4 bg-white rounded-lg shadow-md p-6">
+        <Button variant="ghost" onClick={() => router.back()} className="text-[#f4aa1f]">
+          ← Kembali
+        </Button>
+
         <h1 className="text-2xl font-bold">Tambah Modul</h1>
 
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Judul Modul" />
@@ -95,9 +92,9 @@ export default function AddModulePage() {
             <div className="flex items-center gap-2">
               <Select
                 value={c.contentType}
-                onValueChange={(val) => updateContent(c.id, { contentType: val as 'TEXT' | 'VIDEO' | 'FILE' | 'LINK' })}
+                onValueChange={(val) => updateContent(c.id, { contentType: val as 'TEXT' | 'FILE' | 'LINK' | 'VIDEO', contentData: '' })}
               >
-                <SelectTrigger className="w-full max-w-full">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Pilih tipe konten" />
                 </SelectTrigger>
                 <SelectContent>
@@ -116,27 +113,20 @@ export default function AddModulePage() {
                 onChange={(val) => updateContent(c.id, { contentData: val })}
               />
             )}
-            {c.contentType === 'LINK' && (
+            {(c.contentType === 'LINK' || c.contentType === 'VIDEO') && (
               <Input
                 value={c.contentData}
-                placeholder="https://..."
-                onChange={(e) => updateContent(c.id, { contentData: e.target.value })}
-              />
-            )}
-            {c.contentType === 'VIDEO' && (
-              <Input
-                value={c.contentData}
-                placeholder="YouTube Link"
+                placeholder={c.contentType === 'LINK' ? "https://..." : "YouTube Video ID"}
                 onChange={(e) => updateContent(c.id, { contentData: e.target.value })}
               />
             )}
             {c.contentType === 'FILE' && (
               <Input
                 type="file"
+                accept="application/pdf,application/vnd.ms-powerpoint"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (!file) return;
-                  updateContent(c.id, { file: file });
+                  if (file) updateContent(c.id, { file });
                 }}
               />
             )}
@@ -144,8 +134,25 @@ export default function AddModulePage() {
         ))}
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button onClick={handleAddContent} className="bg-black text-white">+ Tambah Konten</Button>
-          <Button onClick={handleSubmit} className="bg-blue-600 text-white" disabled={!title.trim()}>Simpan Modul</Button>
+          <Button
+            onClick={() => addContent({
+              id: Date.now(),
+              contentTitle: '',
+              contentType: 'TEXT',
+              contentData: '',
+            })}
+            className="bg-black text-white w-full sm:w-auto"
+          >
+            + Tambah Konten
+          </Button>
+
+          <Button
+            onClick={handleSubmit}
+            className="bg-blue-600 text-white w-full sm:w-auto"
+            disabled={!title.trim()}
+          >
+            Simpan Modul
+          </Button>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react'; 
 import { useRouter, useParams } from 'next/navigation';
 import { trpc } from '~/utils/trpc';
 import { Input } from '~/components/ui/input';
@@ -22,11 +22,18 @@ export default function EditModulePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  const { contents, addContent, updateContent, removeContent, setAllContents, resetContents } = useContentStore();
+  const {
+    contents,
+    addContent,
+    updateContent,
+    removeContent,
+    initializeContents,
+    resetContents,
+  } = useContentStore();
 
   const { data: moduleData, isLoading } = trpc.module.getByModuleId.useQuery(
     { id: moduleId ?? 0 },
-    { enabled: !!moduleId },
+    { enabled: !!moduleId }
   );
 
   const updateModule = trpc.module.update.useMutation({
@@ -38,21 +45,23 @@ export default function EditModulePage() {
     onError: () => toast.error('Gagal memperbarui modul'),
   });
 
+  const initializedRef = useRef(false); // Tambahkan ini
+
   useEffect(() => {
-    if (moduleData) {
+    if (moduleData && !initializedRef.current) {
       setTitle(moduleData.title);
       setDescription(moduleData.description || '');
-      setAllContents(
+      initializeContents(
         moduleData.contents.map((c) => ({
-          id: Date.now() + Math.random(), // buat id sementara unik
           contentTitle: c.contentTitle ?? '',
           contentType: c.contentType as 'TEXT' | 'FILE' | 'LINK' | 'VIDEO',
           contentData: c.contentData,
           filePath: c.filePath ?? undefined,
-        })),
+        }))
       );
+      initializedRef.current = true; 
     }
-  }, [moduleData, setAllContents]);
+  }, [moduleData, initializeContents]);
 
   const handleUpdate = async () => {
     if (!title.trim()) {
@@ -66,15 +75,12 @@ export default function EditModulePage() {
         if (c.contentType === 'FILE' && c.file) {
           const formData = new FormData();
           formData.append('file', c.file);
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
+          const res = await fetch('/api/upload', { method: 'POST', body: formData });
           const { path } = await res.json();
           return { ...c, filePath: path };
         }
         return c;
-      }),
+      })
     );
 
     updateModule.mutate({
@@ -95,7 +101,7 @@ export default function EditModulePage() {
 
   return (
     <div className="min-h-screen bg-[#FDF8F4] px-4 py-4">
-      <div className="w-full px-4 sm:px-6 md:px-10 max-w-3xl mx-auto mt-6 md:mt-10 space-y-4 bg-white rounded-lg shadow-md p-6">
+      <div className="w-full max-w-3xl mx-auto space-y-4 bg-white rounded-lg shadow-md p-6">
         <Button variant="ghost" onClick={() => router.back()} className="text-[#f4aa1f] hover:bg-gray-100 px-1 py-4">
           ← Kembali
         </Button>
@@ -115,9 +121,12 @@ export default function EditModulePage() {
             <div className="flex items-center gap-2">
               <Select
                 value={c.contentType}
-                onValueChange={(val) => updateContent(c.id, { contentType: val as 'TEXT' | 'FILE' | 'LINK' | 'VIDEO' })}
+                onValueChange={(val) => updateContent(c.id, {
+                  contentType: val as 'TEXT' | 'FILE' | 'LINK' | 'VIDEO',
+                  contentData: '', 
+                })}
               >
-                <SelectTrigger className="w-full max-w-full">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Pilih tipe konten" />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,25 +140,25 @@ export default function EditModulePage() {
             </div>
 
             {c.contentType === 'TEXT' && (
-              <RichTextEditor
-                content={c.contentData}
-                onChange={(val) => updateContent(c.id, { contentData: val })}
+              <RichTextEditor content={c.contentData} onChange={(val) => updateContent(c.id, { contentData: val })} />
+            )}
+            {(c.contentType === 'LINK' || c.contentType === 'VIDEO') && (
+              <Input
+                value={c.contentData}
+                placeholder={c.contentType === 'LINK' ? "https://..." : "YouTube Link"}
+                onChange={(e) => updateContent(c.id, { contentData: e.target.value })}
               />
             )}
-
             {c.contentType === 'FILE' && (
               <>
                 {c.filePath && (
                   <div className="text-sm text-gray-600 mb-1">
-                    File saat ini:{' '}
-                    <a href={c.filePath} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">
-                      {c.filePath.split('/').pop()}
-                    </a>
+                    File saat ini: <a href={c.filePath} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">{c.filePath.split('/').pop()}</a>
                   </div>
                 )}
                 <Input
                   type="file"
-                  accept="application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                  accept="application/pdf,application/vnd.ms-powerpoint"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) updateContent(c.id, { file });
@@ -157,35 +166,12 @@ export default function EditModulePage() {
                 />
               </>
             )}
-
-            {c.contentType === 'LINK' && (
-              <Input
-                value={c.contentData}
-                placeholder="https://..."
-                onChange={(e) => updateContent(c.id, { contentData: e.target.value })}
-              />
-            )}
-
-            {c.contentType === 'VIDEO' && (
-              <Input
-                value={c.contentData}
-                placeholder="YouTube Link"
-                onChange={(e) => updateContent(c.id, { contentData: e.target.value })}
-              />
-            )}
           </div>
         ))}
 
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
-            onClick={() =>
-              addContent({
-                id: Date.now(),
-                contentTitle: '',
-                contentType: 'TEXT',
-                contentData: '',
-              })
-            }
+            onClick={() => addContent({ id: Date.now(), contentTitle: '', contentType: 'TEXT', contentData: '' })}
             className="w-full sm:w-auto bg-black text-white"
           >
             + Tambah Konten

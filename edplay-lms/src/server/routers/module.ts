@@ -70,7 +70,12 @@ export const moduleRouter = router({
       return newModule;
     }),
   delete: publicProcedure
-    .input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await prisma.moduleContent.deleteMany({
+        where: { moduleId: input.id },
+      });
+
       return prisma.module.delete({
         where: { id: input.id },
       });

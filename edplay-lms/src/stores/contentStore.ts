@@ -1,13 +1,12 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
-type ContentData = {
+export type ContentData = {
   id: number;
   contentTitle: string;
   contentType: 'TEXT' | 'VIDEO' | 'FILE' | 'LINK';
   contentData: string;
   filePath?: string;
-  file?: File; 
+  file?: File;
 };
 
 interface ContentStore {
@@ -17,29 +16,32 @@ interface ContentStore {
   removeContent: (id: number) => void;
   resetContents: () => void;
   setAllContents: (contents: ContentData[]) => void;
+  initializeContents: (serverContents: Omit<ContentData, 'id'>[]) => void;
 }
 
-export const useContentStore = create(
-  persist<ContentStore>(
-    (set) => ({
-      contents: [],
-      addContent: (content) =>
-        set((state) => ({
-          contents: [...state.contents, content],
-        })),
-      updateContent: (id, updated) =>
-        set((state) => ({
-          contents: state.contents.map((c) => (c.id === id ? { ...c, ...updated } : c)),
-        })),
-      removeContent: (id) =>
-        set((state) => ({
-          contents: state.contents.filter((c) => c.id !== id),
-        })),
-      resetContents: () => set({ contents: [] }),
-      setAllContents: (contents) => set({ contents }),
+export const useContentStore = create<ContentStore>((set) => ({
+  contents: [],
+  addContent: (content) =>
+    set((state) => ({
+      contents: [...state.contents, content],
+    })),
+  updateContent: (id, updated) =>
+    set((state) => ({
+      contents: state.contents.map((c) =>
+        c.id === id ? { ...c, ...updated } : c
+      ),
+    })),
+  removeContent: (id) =>
+    set((state) => ({
+      contents: state.contents.filter((c) => c.id !== id),
+    })),
+  resetContents: () => set({ contents: [] }),
+  setAllContents: (contents) => set({ contents }),
+  initializeContents: (serverContents) =>
+    set({
+      contents: serverContents.map((c) => ({
+        ...c,
+        id: Date.now() + Math.random(), 
+      })),
     }),
-    {
-      name: 'lms-contents-storage',
-    }
-  )
-);
+}));

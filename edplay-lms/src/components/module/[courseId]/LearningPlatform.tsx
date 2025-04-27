@@ -27,43 +27,77 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
 
   const utils = trpc.useUtils();
 
-  const deleteModule = trpc.module.delete.useMutation({
-    onSuccess: () => {
-      toast.success('Modul berhasil dihapus');
-      utils.module.getByCourseId.invalidate({ courseId });
-    },
-  });
-  
-  const deleteAssignment = trpc.assignment.delete.useMutation({
-    onSuccess: () => {
-      toast.success('Tugas berhasil dihapus');
-      utils.assignment.getByCourseId.invalidate({ courseId });
-    },
-  });
-  
-  const deleteQuiz = trpc.quiz.delete.useMutation({
-    onSuccess: () => {
-      toast.success('Ujian berhasil dihapus');
-      utils.quiz.getByCourseId.invalidate({ courseId });
-    },
-  });
-  
-  const handleDelete = (id: number, type: 'modul' | 'tugas' | 'ujian') => {
-    if (!confirm(`Yakin ingin menghapus ${type.toLowerCase()} ini?`)) return;
-  
-    switch (type) {
-      case 'modul':
-        deleteModule.mutate({ id });
-        break;
-      case 'tugas':
-        deleteAssignment.mutate({ id });
-        break;
-      case 'ujian':
-        deleteQuiz.mutate({ id });
-        break;
-    }
-  }
+  const deleteModule = trpc.module.delete.useMutation();
+  const deleteAssignment = trpc.assignment.delete.useMutation();
+  const deleteQuiz = trpc.quiz.delete.useMutation();
 
+  const handleDelete = async (id: number, type: 'modul' | 'tugas' | 'ujian') => {
+    let previousData: any[] = [];
+    let invalidate: () => Promise<any>;
+
+    if (type === 'modul') {
+      previousData = modules;
+      utils.module.getByCourseId.setData({ courseId }, modules.filter((m) => m.id !== id));
+      invalidate = () => utils.module.getByCourseId.invalidate({ courseId });
+      deleteModule.mutate(
+        { id },
+        {
+          onError: () => {
+            utils.module.getByCourseId.setData({ courseId }, previousData);
+            toast.error('Gagal menghapus modul');
+          },
+          onSuccess: () => {
+            toast.success('Modul berhasil dihapus');
+          },
+          onSettled: async () => {
+            await invalidate();
+          },
+        }
+      );
+    }
+
+    if (type === 'tugas') {
+      previousData = assignments;
+      utils.assignment.getByCourseId.setData({ courseId }, assignments.filter((a) => a.id !== id));
+      invalidate = () => utils.assignment.getByCourseId.invalidate({ courseId });
+      deleteAssignment.mutate(
+        { id },
+        {
+          onError: () => {
+            utils.assignment.getByCourseId.setData({ courseId }, previousData);
+            toast.error('Gagal menghapus tugas');
+          },
+          onSuccess: () => {
+            toast.success('Tugas berhasil dihapus');
+          },
+          onSettled: async () => {
+            await invalidate();
+          },
+        }
+      );
+    }
+
+    if (type === 'ujian') {
+      previousData = quizzes;
+      utils.quiz.getByCourseId.setData({ courseId }, quizzes.filter((q) => q.id !== id));
+      invalidate = () => utils.quiz.getByCourseId.invalidate({ courseId });
+      deleteQuiz.mutate(
+        { id },
+        {
+          onError: () => {
+            utils.quiz.getByCourseId.setData({ courseId }, previousData);
+            toast.error('Gagal menghapus ujian');
+          },
+          onSuccess: () => {
+            toast.success('Ujian berhasil dihapus');
+          },
+          onSettled: async () => {
+            await invalidate();
+          },
+        }
+      );
+    }
+  };
 
   const activeItem = (() => {
     if (activeTab === 'Materi') return modules.find((m) => m.id === activeId);
@@ -94,26 +128,28 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
 
     if (activeTab === 'Tugas' || activeTab === 'Ujian') {
       const item = activeItem as (typeof assignments)[0];
-      return <ContentView title={item.title} description={item.description || ''} contents={[]}/>;
+      return <ContentView title={item.title} description={item.description || ''} contents={[]} />;
     }
 
     return <p>Silakan pilih tab.</p>;
   };
 
   const renderSidebarContent = (onSelectItem: (id: number) => void) => {
+    const commonProps = {
+      activeId,
+      onSelect: onSelectItem,
+      isTeacher: isAllowed,
+      courseId,
+      onDelete: handleDelete,
+    };
+
     if (activeTab === 'Materi') {
       return (
         <ContentList
+          {...commonProps}
           items={modules}
-          activeId={activeId}
-          onSelect={onSelectItem}
           renderTitle={(m) => m.title}
           typeLabel="Modul"
-          isTeacher={isAllowed}
-          courseId={courseId}
-          onDelete={(id) => {
-            deleteModule.mutate({ id });
-          }}
         />
       );
     }
@@ -121,14 +157,10 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     if (activeTab === 'Tugas') {
       return (
         <ContentList
+          {...commonProps}
           items={assignments}
-          activeId={activeId}
-          onSelect={onSelectItem}
           renderTitle={(t) => t.title}
           typeLabel="Tugas"
-          isTeacher={isAllowed}
-          courseId={courseId}
-          onDelete={handleDelete}
         />
       );
     }
@@ -136,14 +168,10 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     if (activeTab === 'Ujian') {
       return (
         <ContentList
+          {...commonProps}
           items={quizzes}
-          activeId={activeId}
-          onSelect={onSelectItem}
           renderTitle={(q) => q.title}
           typeLabel="Ujian"
-          isTeacher={isAllowed}
-          courseId={courseId}
-          onDelete={handleDelete}
         />
       );
     }
