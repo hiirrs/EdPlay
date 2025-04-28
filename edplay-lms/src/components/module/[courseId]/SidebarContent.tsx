@@ -18,6 +18,7 @@ export default function SidebarContent<T extends { id: number }>({
   typeLabel,
 }: SidebarContentProps<T>) {
   const [activeId, setActiveId] = useState<number | null>(items[0]?.id ?? null)
+  const [viewMode, setViewMode] = useState<'default' | 'submissionList'>('default')
   const selected = items.find((i) => i.id === activeId)
 
   return (
@@ -29,6 +30,12 @@ export default function SidebarContent<T extends { id: number }>({
           onSelect={setActiveId}
           renderTitle={renderTitle}
           typeLabel={typeLabel}
+          isTeacher={false}           
+          courseId={undefined}         
+          onDelete={() => { /* no-op */ }}          
+          viewMode={viewMode}         
+          setViewMode={setViewMode}   
+          setActiveId={setActiveId}  
         />
       </div>
 

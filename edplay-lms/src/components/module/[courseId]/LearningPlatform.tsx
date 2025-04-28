@@ -26,6 +26,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     'default',
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
   const { data: modules = [] } = trpc.module.getByCourseId.useQuery({
     courseId,
@@ -48,7 +49,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     id: s.user.user_id,
     name: s.user.fullname ?? '',
     status:
-      s.answerText || s.answerFile
+      s.answerText || s.filesJson
         ? 'Sudah Mengumpulkan'
         : 'Belum Mengumpulkan',
   }));
@@ -136,6 +137,15 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     if (activeTab === 'Ujian') return quizzes.find((q) => q.id === activeId);
     return null;
   })();
+
+  const handleSelectItem = (id: number) => {
+    setActiveId(id);
+    if (activeTab === 'Tugas' && viewMode === 'submissionList') {
+      setSelectedStudentId(id); 
+    } else {
+      setSelectedStudentId(null);
+    }
+  };
 
   const renderSidebarContent = (onSelectItem: (id: number) => void) => {
     const commonProps = {
@@ -251,6 +261,9 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
               contentData: c.contentData,
               filePath: c.filePath ?? undefined,
             }))}
+            showAnswerBox={true} 
+            assignmentId={item.id}
+            selectedStudentId={selectedStudentId} 
           />
         </div>
       );
@@ -299,7 +312,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
             <div
               className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg border transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:translate-x-0 md:w-[280px] md:min-w-[280px] md:max-w-[280px] md:rounded-lg md:shadow-md z-40`}
             >
-              {renderSidebarContent(setActiveId)}
+              {renderSidebarContent(handleSelectItem)}
             </div>
 
             {/* Overlay blur saat sidebar open */}

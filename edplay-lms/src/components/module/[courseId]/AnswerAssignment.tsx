@@ -12,6 +12,7 @@ interface AnswerAssignmentProps {
   initialFiles?: { id: string; name: string }[];
   isSubmitted: boolean;
   submitTime?: string;
+  studentId?: number | null;
 }
 
 export default function AnswerAssignment({

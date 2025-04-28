@@ -112,9 +112,12 @@ async function main() {
   await prisma.assignmentSubmission.create({
     data: {
       assignmentId: assignment.id,
-      userId: student.user_id, // corrected from studentId -> userId
+      userId: student.user_id,
       answerText: "I have completed the assignment.",
-      answerFile: "/submissions/algebra_homework_jane.pdf",
+      filesJson: JSON.stringify([
+        { id: "fake-id-123", name: "algebra_homework_jane.pdf" }
+      ]), 
+      submittedAt: new Date(),
     },
   });
 

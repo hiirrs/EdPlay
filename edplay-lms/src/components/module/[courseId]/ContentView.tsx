@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from '~/components/ui/accordion';
 import dynamic from 'next/dynamic';
+import AnswerAssignment from './AnswerAssignment';
 
 type ContentData = {
   id: number;
@@ -20,6 +21,9 @@ interface ContentViewProps {
   title: string;
   contents: ContentData[];
   description?: string;
+  showAnswerBox?: boolean; 
+  assignmentId?: number;
+  selectedStudentId?: number | null;
 }
 
 function convertYoutubeToEmbedUrl(url: string) {
@@ -39,6 +43,9 @@ export default function ContentView({
   title,
   contents = [],
   description,
+  showAnswerBox = false,
+  assignmentId,
+  selectedStudentId = null,
 }: ContentViewProps) {
   return (
     <div className="bg-white rounded-lg">
@@ -94,6 +101,15 @@ export default function ContentView({
           <p className="text-gray-600">Belum ada konten.</p>
         )}
       </Accordion>
+      {showAnswerBox && assignmentId && (
+        <div className="pt-6 border-t">
+          <AnswerAssignment
+            assignmentId={assignmentId}
+            studentId={selectedStudentId ?? undefined}
+            isSubmitted={false}
+          />
+        </div>
+      )}
     </div>
   );
 }
