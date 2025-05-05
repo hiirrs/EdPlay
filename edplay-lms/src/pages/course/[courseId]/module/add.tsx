@@ -25,7 +25,7 @@ export default function AddModulePage() {
   const { contents, addContent, updateContent, removeContent, resetContents } = useContentStore();
 
   useEffect(() => {
-    resetContents(); // 🧹 Bersihkan konten begitu page Add Modul dibuka
+    resetContents(); 
   }, [resetContents]);
 
   const createModule = trpc.module.create.useMutation({

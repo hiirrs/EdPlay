@@ -2,7 +2,6 @@
 
 import { JSX, useState } from 'react'
 import ContentList from './ContentList'
-// import ContentView from './ContentView'
 
 interface SidebarContentProps<T> {
   items: T[]

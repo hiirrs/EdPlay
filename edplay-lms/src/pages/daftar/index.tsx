@@ -39,11 +39,10 @@ const RegistrationPage: NextPageWithLayout = () => {
     confirmPassword: '',
     schoolId: '',
     schoolLevel: '',
-    grade: 0, // saved as number; 0 means "not selected"
+    grade: 0, 
     schoolName: '',
   });
 
-  // Query to fetch schools based on education level and search query.
   const { data: schoolOptions, isLoading: loadingSchools } =
     trpc.school.getSchools.useQuery(
       {
@@ -53,7 +52,6 @@ const RegistrationPage: NextPageWithLayout = () => {
       { enabled: !!formData.schoolLevel }
     );
 
-  // Compute grade options based on school level.
   const gradeOptions =
     formData.schoolLevel === 'SD'
       ? [1, 2, 3, 4, 5, 6]
@@ -61,7 +59,6 @@ const RegistrationPage: NextPageWithLayout = () => {
       ? [1, 2, 3]
       : [];
 
-  // Real-time validation for username and matching passwords.
   useEffect(() => {
     if (/\s/.test(formData.username)) {
       setErrorMessage('Username tidak boleh mengandung spasi.');
@@ -78,7 +75,7 @@ const RegistrationPage: NextPageWithLayout = () => {
 
   const handleNextStep = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Check that all required fields are filled.
+
     if (
       !formData.username.trim() ||
       !formData.fullname.trim() ||
@@ -88,7 +85,7 @@ const RegistrationPage: NextPageWithLayout = () => {
       setErrorMessage('Mohon isi semua data pada bagian ini terlebih dahulu.');
       return;
     }
-    // If any validation error exists, do not proceed.
+
     if (errorMessage) return;
     setStep(2);
   };

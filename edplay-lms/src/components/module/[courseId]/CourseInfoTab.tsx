@@ -31,6 +31,7 @@ export default function CourseInfoTab({
   const { data: posts = [], refetch } = trpc.post.getByCourseId.useQuery({
     courseId,
   });
+
   const updateCourse = trpc.course.update.useMutation();
   const createPost = trpc.post.create.useMutation();
   const deletePost = trpc.post.delete.useMutation();
@@ -38,27 +39,63 @@ export default function CourseInfoTab({
   const [editMode, setEditMode] = useState(false);
   const [newPost, setNewPost] = useState('');
 
-  const [name, setName] = useState(course?.name ?? '');
-  const [description, setDescription] = useState(course?.description ?? '');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | undefined>();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (course) {
+      setName(course.name);
+      setDescription(course.description ?? '');
+      setImagePreview(course.imageUrl ?? undefined);
+    }
+  }, [course]);
 
   const isSaveDisabled =
-    name.trim() === '' ||
-    (name === course?.name && description === (course?.description ?? ''));
+    name === '' &&
+    description === (course?.description ?? '') &&
+    selectedFile === null;
+
+  const uploadImage = async (): Promise<string | undefined> => {
+    if (!selectedFile) return undefined;
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    const res = await fetch('/api/upload-course-bg', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload gagal');
+
+    return data.path as string;
+  };
 
   const handleSave = async () => {
     try {
+      let uploadedImageUrl = course?.imageUrl ?? undefined;
+      if (selectedFile) {
+        uploadedImageUrl = await uploadImage();
+      }
+
       await updateCourse.mutateAsync({
         id: courseId,
         name,
+        description,
         educationLevel: course?.educationLevel ?? 'SD',
         grade: course?.grade ?? 1,
-        description,
         isActive: course?.isActive ?? true,
+        imageUrl: uploadedImageUrl,
       });
+
       toast.success('Informasi kelas diperbarui');
       await refetchCourse();
       setEditMode(false);
-    } catch {
+      setSelectedFile(null);
+    } catch (err) {
+      console.error(err);
       toast.error('Gagal memperbarui info kelas');
     }
   };
@@ -85,66 +122,94 @@ export default function CourseInfoTab({
     }
   };
 
-  useEffect(() => {
-    if (course) {
-      setName(course.name);
-      setDescription(course.description ?? '');
-    }
-  }, [course]);
-
   return (
-    <div>
-      <div className="bg-white p-4 rounded shadow-md">
-        <h2 className="text-xl font-bold mb-4">Informasi Kelas</h2>
-
-        {userRole === 'teacher' || userRole === 'admin' ? (
-          <>
-            {editMode ? (
-              <div className="space-y-4 mb-6">
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={course?.name}
-                />
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={course?.description ?? 'deskripsi'}
-                />
-                <Button onClick={handleSave} disabled={isSaveDisabled}>Simpan Perubahan</Button>
-              </div>
-            ) : (
-              <div className="mb-6">
-                <p className="font-semibold">Nama: {course?.name}</p>
-                <p className="text-gray-700">
-                  Deskripsi: {course?.description || '-'}
-                </p>
-                <Button onClick={() => setEditMode(true)} className="mt-2">
-                  Edit
-                </Button>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Buat Post</h3>
-              <Textarea
-                value={newPost}
-                onChange={(e) => setNewPost(e.target.value)}
-                placeholder="Tulis informasi untuk siswa..."
-              />
-              <Button onClick={handlePost}>Kirim</Button>
-            </div>
-          </>
-        ) : (
-          <div className="mb-6">
-            <p className="font-semibold">Nama: {course?.name}</p>
-            <p className="text-gray-700">
-              Deskripsi: {course?.description || '-'}
-            </p>
-          </div>
+    <div className="px-">
+      <div className="flex flex-col md:flex-row gap-4 items-start bg-white p-4 rounded shadow-md">
+        {imagePreview && (
+          <img
+            src={imagePreview}
+            alt="Course"
+            className="rounded-lg object-cover w-full md:w-1/4 max-h-36"
+          />
         )}
+
+        <div className="flex-1 min-w-[300px]">
+          <h2 className="text-xl font-bold mb-4">Informasi Kelas</h2>
+
+          {userRole === 'teacher' || userRole === 'admin' ? (
+            <>
+              {editMode ? (
+                <div className="space-y-4 mb-6">
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Nama Kelas"
+                  />
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Deskripsi"
+                  />
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">
+                      Ganti Gambar Kelas
+                    </label>
+                    {imagePreview && (
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded"
+                      />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </div>
+                  <Button onClick={handleSave} disabled={isSaveDisabled}>
+                    Simpan Perubahan
+                  </Button>
+                </div>
+              ) : (
+                <div className="mb-6">
+                  <p className="font-semibold">Nama: {course?.name}</p>
+                  <p className="text-gray-700">
+                    Deskripsi: {course?.description || '-'}
+                  </p>
+                  <Button onClick={() => setEditMode(true)} className="mt-2">
+                    Edit
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="mb-6">
+              <p className="font-semibold">Nama: {course?.name}</p>
+              <p className="text-gray-700">
+                Deskripsi: {course?.description || '-'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="mt-6">
+
+      <div className="mt-2">
+        <div className="space-y-2 bg-white p-4 rounded-md shadow-md mb-2">
+          <h3 className="font-semibold text-lg">Buat Post</h3>
+          <Textarea
+            value={newPost}
+            onChange={(e) => setNewPost(e.target.value)}
+            placeholder="Tulis informasi untuk siswa..."
+          />
+          <Button onClick={handlePost}>Kirim</Button>
+        </div>
         <h3 className="font-semibold text-lg mb-2">Post Informasi</h3>
         {posts.map((post: Post) => (
           <div

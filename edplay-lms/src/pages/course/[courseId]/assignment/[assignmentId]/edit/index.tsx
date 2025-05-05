@@ -21,7 +21,6 @@ import RichTextEditor from '~/components/RichTextEditor';
 export default function EditAssignmentPage() {
   const router = useRouter();
   const params = useParams();
-  //   const courseId = Number(params?.courseId);
   const assignmentId = Number(params?.assignmentId);
 
   const {

@@ -14,18 +14,15 @@ import { useRouter } from 'next/navigation';
 const LoginPage: NextPageWithLayout = () => {
   const [loginData, setLoginData] = useState({ username: '', password: '' });
   const router = useRouter();
-  // const utils = trpc.useContext();
 
   const loginMutation = trpc.user.login.useMutation({
     onSuccess() {
       toast.success('Login successful!');
-      router.push('/'); // redirect to dashboard after login
+      router.push('/'); 
     },
     onError(error: any) {
-      // More resilient error handling
       const errorMessage = error.message || 'Login failed. Please try again.';
       toast.error('Login error: ' + errorMessage);
-      // No need to invalidate here as we're not using the data yet
     },
   });
   
@@ -34,7 +31,6 @@ const LoginPage: NextPageWithLayout = () => {
     try {
       await loginMutation.mutateAsync(loginData);
     } catch (error) {
-      // Additional error handling if needed
       console.error('Login submission error:', error);
     }
   };

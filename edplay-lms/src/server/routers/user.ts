@@ -1,7 +1,5 @@
 
-// import { router, publicProcedure } from '../trpc';
 import { z } from 'zod';
-// import type { Prisma } from "@prisma/client";
 import { prisma } from '~/server/prisma';
 import { router, publicProcedure } from "../trpc";
 import { TRPCError } from '@trpc/server';
@@ -45,7 +43,7 @@ export const userRouter = router({
             });
 
             const token = jwt.sign(
-                { userId: user.user_id, role: user.role },
+                { userId: user.user_id, role: user.role, schoolId: user.schoolId },
                 process.env.JWT_SECRET!,
                 { expiresIn: '3h' },
             );
@@ -66,7 +64,7 @@ export const userRouter = router({
                 throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' });
             }
 
-            const token = createJWT({ userId: user.user_id, role: user.role });
+            const token = createJWT({ userId: user.user_id, role: user.role, schoolId: user.schoolId });
 
             if (ctx.res) {
                 ctx.res.setHeader('Set-Cookie', createCookie(token));
@@ -79,7 +77,7 @@ export const userRouter = router({
         if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
         return prisma.user.findUnique({
             where: { user_id: ctx.user.userId },
-            select: { user_id: true, role: true, fullname: true },
+            select: { user_id: true, role: true, fullname: true, schoolId: true },
         });
     }),
 

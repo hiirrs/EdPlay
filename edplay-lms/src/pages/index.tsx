@@ -4,27 +4,49 @@ import { useState } from 'react';
 import { BookOpen, Calculator, Microscope, PenTool } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
-// import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
-// import { Badge } from "~/components/ui/badge"
 import { trpc } from '~/utils/trpc';
 import { ClassCard } from '~/components/home/ClassCard';
 import { FeatureModal } from '~/components/home/feature-modal';
-import Link from 'next/link';
+import { useRouter } from 'next/router';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '~/components/ui/dialog';
+import { Input } from '~/components/ui/input';
+import toast from 'react-hot-toast';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('kelas');
   const [openModal, setOpenModal] = useState<string | null>(null);
+  const [openTokenModal, setOpenTokenModal] = useState(false);
+  const [token, setToken] = useState('');
 
-  const username = 'Fulan';
-
-  // TRPC Fetch
-  const { data: classData = [], isLoading } =
-    trpc.course.getByUserRole.useQuery();
+  const {
+    data: classData = [],
+    isLoading,
+    refetch: refetchCourses,
+  } = trpc.course.getByUserRole.useQuery();
 
   const { data: userData } = trpc.auth.getSession.useQuery();
+  const enrollMutation = trpc.course.enroll.useMutation({
+    onSuccess: () => {
+      toast.success('Berhasil masuk kelas!');
+      setOpenTokenModal(false);
+      setToken('');
+      refetchCourses();
+    },
+    onError: () => {
+      toast.error('Token tidak valid atau sudah terdaftar.');
+    },
+  });
+
   const user = userData;
+  const username = user?.fullname;
+  const router = useRouter();
 
   const mappedClassData = classData.map((course) => ({
     id: course.id,
@@ -48,21 +70,16 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
-      {/* <div className="bg-gray-700 text-white p-3 text-sm">
-        <Button variant="link" className="text-white p-0 h-auto">
-          <Home className="w-4 h-4 mr-1" />
-          Home
-        </Button>
-      </div> */}
-
-      {/* Main Navigation */}
+      {/* Navigation */}
       <nav className="bg-[#3f51b5] text-white p-4 flex justify-end">
         <div className="flex gap-6">
           {['tugas', 'kelas', 'ujian', 'profil'].map((tab) => (
             <Button
               key={tab}
               variant="ghost"
-              className={`text-white hover:bg-[#4d5ec1] ${activeTab === tab ? 'bg-[#4d5ec1]' : ''}`}
+              className={`text-white hover:bg-[#4d5ec1] ${
+                activeTab === tab ? 'bg-[#4d5ec1]' : ''
+              }`}
               onClick={() => setActiveTab(tab)}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -74,7 +91,7 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* User Welcome Section */}
+      {/* Welcome Section */}
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-center gap-4 mb-6">
           <Avatar className="w-16 h-16 border-2 border-gray-200">
@@ -91,52 +108,35 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Features Card */}
+        {/* Features */}
         <Card className="mb-8 overflow-hidden bg-[#172b4d] text-white border-0">
           <CardContent className="p-0">
             <div className="p-4">
               <h2 className="text-xl font-bold mb-2">Leaderboard</h2>
               <div className="flex flex-wrap justify-between">
                 {[
-                  {
-                    key: 'ujian',
-                    icon: <PenTool className="w-6 h-6 text-white" />,
-                    color: 'bg-[#f28b82]',
-                  },
-                  {
-                    key: 'tugas',
-                    icon: <BookOpen className="w-6 h-6 text-white" />,
-                    color: 'bg-[#fdd663]',
-                  },
-                  {
-                    key: 'bacayu',
-                    icon: <Microscope className="w-6 h-6 text-white" />,
-                    color: 'bg-[#81c995]',
-                  },
-                  {
-                    key: 'hitungin',
-                    icon: <Calculator className="w-6 h-6 text-white" />,
-                    color: 'bg-[#a0c4ff]',
-                  },
+                  { key: 'ujian', icon: <PenTool className="w-6 h-6 text-white" />, color: 'bg-[#f28b82]' },
+                  { key: 'tugas', icon: <BookOpen className="w-6 h-6 text-white" />, color: 'bg-[#fdd663]' },
+                  { key: 'bacayu', icon: <Microscope className="w-6 h-6 text-white" />, color: 'bg-[#81c995]' },
+                  { key: 'hitungin', icon: <Calculator className="w-6 h-6 text-white" />, color: 'bg-[#a0c4ff]' },
                 ].map(({ key, icon, color }) => (
                   <div
                     key={key}
                     className="flex flex-col items-center p-4 hover:bg-[#1e3464] rounded-lg cursor-pointer transition-colors"
                     onClick={() => setOpenModal(key)}
                   >
-                    <div className={`${color} p-4 rounded-full mb-2`}>
-                      {icon}
-                    </div>
+                    <div className={`${color} p-4 rounded-full mb-2`}>{icon}</div>
                     <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
                   </div>
                 ))}
 
-                {/* Leaderboard */}
                 <div className="flex flex-col justify-center mx-4">
                   {leaderboardData.map((user) => (
                     <div
                       key={user.rank}
-                      className={`flex items-center mb-2 bg-[#ffe082] text-black rounded-full px-4 py-1 ${user.name === username ? 'border-2 border-white' : ''}`}
+                      className={`flex items-center mb-2 bg-[#ffe082] text-black rounded-full px-4 py-1 ${
+                        user.name === username ? 'border-2 border-white' : ''
+                      }`}
                     >
                       <span className="w-6 text-center font-bold">
                         {user.rank}
@@ -150,16 +150,23 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Classes Section */}
+        {/* Class List */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Kelas Kamu</h2>
-            {(user?.role === 'teacher' || user?.role === 'admin') && (
+            {user?.role === 'teacher' || user?.role === 'admin' ? (
               <Button
-                onClick={() => alert('Navigasi ke halaman tambah kelas')}
+                onClick={() => router.push(`/course/add`)}
                 className="bg-blue-600 text-white"
               >
                 + Tambah Kelas
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setOpenTokenModal(true)}
+                className="bg-blue-600 text-white"
+              >
+                + Masukkan Token Kelas
               </Button>
             )}
           </div>
@@ -169,16 +176,38 @@ export default function Dashboard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {mappedClassData.map((item) => (
-                <Link key={item.id} href={`/course/${item.id}`}>
+                <div key={item.id}>
                   <ClassCard data={item} />
-                </Link>
+                </div>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Token Input Modal */}
+      <Dialog open={openTokenModal} onOpenChange={setOpenTokenModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Masukkan Token Kelas</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Contoh: ABC123XYZ"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+          />
+          <DialogFooter>
+            <Button
+              onClick={() => enrollMutation.mutate({ token })}
+              disabled={!token.trim()}
+            >
+              Gabung
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feature Modals */}
       {['ujian', 'tugas', 'bacayu', 'hitungin'].map((mod) => (
         <FeatureModal
           key={mod}

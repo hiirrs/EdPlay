@@ -45,7 +45,7 @@ export default function EditModulePage() {
     onError: () => toast.error('Gagal memperbarui modul'),
   });
 
-  const initializedRef = useRef(false); // Tambahkan ini
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (moduleData && !initializedRef.current) {

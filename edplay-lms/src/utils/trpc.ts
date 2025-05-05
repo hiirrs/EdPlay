@@ -3,7 +3,7 @@ import { createTRPCNext } from '@trpc/next';
 
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import type { NextPageContext } from 'next';
-// ℹ️ Type-only import:
+// Type-only import:
 // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-8.html#type-only-imports-and-export
 import type { AppRouter } from '~/server/routers/_app';
 import { transformer } from './transformer';

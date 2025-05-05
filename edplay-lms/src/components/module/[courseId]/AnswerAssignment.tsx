@@ -5,6 +5,7 @@ import { Button } from '~/components/ui/button';
 import { UploadDropzone } from '~/components/UploadDropzone';
 import { trpc } from '~/utils/trpc';
 import dynamic from 'next/dynamic';
+import toast from 'react-hot-toast';
 import { Trash2 } from 'lucide-react';
 
 const RichTextEditor = dynamic(() => import('~/components/RichTextEditor'), {
@@ -39,13 +40,12 @@ export default function AnswerAssignment({
 
   const handleSubmit = async () => {
     if (!answerText.trim() && files.length === 0) {
-      alert('Harap isi jawaban atau upload file.');
+      toast.error('Harap isi jawaban atau upload file.');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Upload file baru (file yang punya property 'file')
       const uploads = await Promise.all(
         files.map(async (file) => {
           if (file.file) {
@@ -65,10 +65,10 @@ export default function AnswerAssignment({
       await submitMutation.mutateAsync({
         assignmentId,
         answerText,
-        filePath: uploads.map((f) => f.id).join(','), 
+        filePath: uploads.map((f) => f.id).join(','),
       });
 
-      setFiles(uploads); 
+      setFiles(uploads);
       setIsSubmitted(true);
     } catch (err) {
       console.error('Submit error:', err);
