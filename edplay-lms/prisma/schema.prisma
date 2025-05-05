@@ -20,6 +20,8 @@ model Post {
   // This is unique so it can be used for cursor-based pagination
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  Int
 }
 
 // This is your Prisma schema file,
@@ -76,11 +78,14 @@ model Course {
   imageUrl       String         @default("/images/bgs/bg-class1.png")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  isActive       Boolean        @default(true)
+  enrollToken    String         @unique @default(dbgenerated("gen_random_uuid()"))
 
   enrollments Enrollment[]
   assignments Assignment[]
   modules     Module[]
   quizzes     Quiz[]
+  posts       Post[]
 }
 
 model Enrollment {
@@ -125,7 +130,7 @@ model AssignmentSubmission {
   assignmentId Int
   userId       Int
   answerText   String?
-  filesJson    String? 
+  filesJson    String?
   submittedAt  DateTime @default(now())
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)

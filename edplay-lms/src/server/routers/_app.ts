@@ -15,6 +15,9 @@ export const appRouter = router({
   healthcheck: publicProcedure.query(() => 'yay!'),
 
   post: postRouter,
+  auth: router({
+    getSession: userRouter.me, 
+  }),
   user: userRouter,
   school: schoolRouter,
   course: courseRouter,

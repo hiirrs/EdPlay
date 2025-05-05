@@ -9,6 +9,7 @@ import AnswerView from './AnswerView';
 import { trpc } from '~/utils/trpc';
 import toast from 'react-hot-toast';
 import { Menu, X } from 'lucide-react';
+import CourseInfoTab from './CourseInfoTab';
 
 interface LearningPlatformProps {
   courseId: number;
@@ -278,6 +279,17 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
       );
     }
 
+    if (activeTab === 'Informasi') {
+      return (
+        <div>
+          <CourseInfoTab
+            courseId={courseId}
+            userRole={currentUser?.role ?? 'student'}
+          />
+        </div>
+      );
+    }
+
     if (!activeItem) return <p className="p-4">Pilih item di samping.</p>;
 
     if (activeTab === 'Materi') {
@@ -406,22 +418,26 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
           }}
         />
 
-        {['Materi', 'Tugas', 'Ujian'].includes(activeTab) && (
-          <div className="mt-6 flex flex-col md:flex-row gap-6 relative">
-            <div
-              className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg border transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:translate-x-0 md:w-[280px] md:min-w-[280px] md:max-w-[280px] md:rounded-lg md:shadow-md z-40`}
-            >
-              {renderSidebarContent(handleSelectItem)}
-            </div>
-            {sidebarOpen && (
+        <div className="mt-6">
+          {activeTab === 'Informasi' ? (
+            <div>{renderContentPanel()}</div>
+          ) : (
+            <div className="flex flex-col md:flex-row gap-6 relative">
               <div
-                className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-30"
-                onClick={() => setSidebarOpen(false)}
-              ></div>
-            )}
-            <div className="w-full md:w-9/12">{renderContentPanel()}</div>
-          </div>
-        )}
+                className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg border transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:translate-x-0 md:w-[280px] md:min-w-[280px] md:max-w-[280px] md:rounded-lg md:shadow-md z-40`}
+              >
+                {renderSidebarContent(handleSelectItem)}
+              </div>
+              {sidebarOpen && (
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-30"
+                  onClick={() => setSidebarOpen(false)}
+                ></div>
+              )}
+              <div className="w-full md:w-9/12">{renderContentPanel()}</div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

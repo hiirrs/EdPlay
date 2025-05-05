@@ -17,12 +17,12 @@ async function main() {
   await prisma.assignmentContent.deleteMany({});
   await prisma.assignment.deleteMany({});
   await prisma.enrollment.deleteMany({});
+  await prisma.post.deleteMany({});
   await prisma.course.deleteMany({});
   await prisma.gameNumeracy.deleteMany({});
   await prisma.gameLiteracy.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.school.deleteMany({});
-  await prisma.post.deleteMany({});
 
   // Create school
   const school = await prisma.school.create({
@@ -116,7 +116,7 @@ async function main() {
       answerText: "I have completed the assignment.",
       filesJson: JSON.stringify([
         { id: "fake-id-123", name: "algebra_homework_jane.pdf" }
-      ]), 
+      ]),
       submittedAt: new Date(),
     },
   });
@@ -169,6 +169,7 @@ async function main() {
     data: {
       title: "Welcome to EdPlay!",
       text: "This is our first post on the EdPlay platform. Stay tuned for more updates.",
+      courseId: course.id,
     },
   });
 

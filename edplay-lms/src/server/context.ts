@@ -6,9 +6,10 @@ import { prisma } from './prisma';
 /**
  * Tipe payload token JWT yang kita harapkan.
  */
-interface DecodedToken {
+export interface DecodedToken {
   userId: number;
-  role: string;
+  role: 'admin' | 'teacher' | 'student';
+  schoolId: number; 
 }
 
 /**
@@ -31,7 +32,7 @@ export async function createContextInner({ req, res }: CreateContextOptions) {
   if (token) {
     try {
       const decoded = verifyJWT(token) as DecodedToken;
-      user = { userId: decoded.userId, role: decoded.role };
+      user = { userId: decoded.userId, role: decoded.role, schoolId: decoded.schoolId };
     } catch (error) {
       console.error('[JWT ERROR]', error);
       // Token tidak valid, hapus cookie
