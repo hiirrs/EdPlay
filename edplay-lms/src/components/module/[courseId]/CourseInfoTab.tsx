@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '~/utils/trpc';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
@@ -25,7 +25,9 @@ export default function CourseInfoTab({
   courseId,
   userRole,
 }: CourseInfoTabProps) {
-  const { data: course } = trpc.course.getById.useQuery({ id: courseId });
+  const { data: course, refetch: refetchCourse } = trpc.course.getById.useQuery(
+    { id: courseId },
+  );
   const { data: posts = [], refetch } = trpc.post.getByCourseId.useQuery({
     courseId,
   });
@@ -39,6 +41,10 @@ export default function CourseInfoTab({
   const [name, setName] = useState(course?.name ?? '');
   const [description, setDescription] = useState(course?.description ?? '');
 
+  const isSaveDisabled =
+    name.trim() === '' ||
+    (name === course?.name && description === (course?.description ?? ''));
+
   const handleSave = async () => {
     try {
       await updateCourse.mutateAsync({
@@ -50,6 +56,7 @@ export default function CourseInfoTab({
         isActive: course?.isActive ?? true,
       });
       toast.success('Informasi kelas diperbarui');
+      await refetchCourse();
       setEditMode(false);
     } catch {
       toast.error('Gagal memperbarui info kelas');
@@ -78,6 +85,13 @@ export default function CourseInfoTab({
     }
   };
 
+  useEffect(() => {
+    if (course) {
+      setName(course.name);
+      setDescription(course.description ?? '');
+    }
+  }, [course]);
+
   return (
     <div>
       <div className="bg-white p-4 rounded shadow-md">
@@ -90,14 +104,14 @@ export default function CourseInfoTab({
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Nama Kelas"
+                  placeholder={course?.name}
                 />
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Deskripsi"
+                  placeholder={course?.description ?? 'deskripsi'}
                 />
-                <Button onClick={handleSave}>Simpan Perubahan</Button>
+                <Button onClick={handleSave} disabled={isSaveDisabled}>Simpan Perubahan</Button>
               </div>
             ) : (
               <div className="mb-6">
