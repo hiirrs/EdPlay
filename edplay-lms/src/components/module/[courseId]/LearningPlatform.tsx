@@ -5,6 +5,7 @@ import Navbar from '../../NavbarAlt';
 import TabNavigation from './TabNav';
 import ContentView from './ContentView';
 import ContentList from './ContentList';
+import AnswerView from './AnswerView';
 import { trpc } from '~/utils/trpc';
 import toast from 'react-hot-toast';
 import { Menu, X } from 'lucide-react';
@@ -16,7 +17,8 @@ interface LearningPlatformProps {
 interface SubmissionStudentItem {
   id: number;
   name: string;
-  status: 'Sudah Mengumpulkan' | 'Belum Mengumpulkan';
+  grade: number;
+  status: 'Sudah' | 'Belum';
 }
 
 export default function LearningPlatform({ courseId }: LearningPlatformProps) {
@@ -26,7 +28,9 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     'default',
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
+    null,
+  );
 
   const { data: modules = [] } = trpc.module.getByCourseId.useQuery({
     courseId,
@@ -36,6 +40,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   });
   const { data: quizzes = [] } = trpc.quiz.getByCourseId.useQuery({ courseId });
   const { data: currentUser } = trpc.user.me.useQuery();
+
   const { data: submissions = [] } =
     trpc.assignment.getSubmissionsByAssignmentId.useQuery(
       { assignmentId: activeId ?? 0 },
@@ -45,13 +50,36 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
       },
     );
 
+  const { data: mySubmission, isLoading: isMySubmissionLoading } =
+    trpc.assignmentSubmission.getMySubmission.useQuery(
+      { assignmentId: activeId ?? 0 },
+      {
+        enabled: activeTab === 'Tugas' && !!activeId,
+      },
+    );
+
+  const { data: studentSubmission } =
+    trpc.assignmentSubmission.getByStudent.useQuery(
+      {
+        assignmentId: activeId ?? 0,
+        studentId: selectedStudentId ?? 0,
+      },
+      {
+        enabled:
+          activeTab === 'Tugas' &&
+          viewMode === 'submissionList' &&
+          !!selectedStudentId &&
+          !!activeId,
+      },
+    );
+  console.log('selectedStudentId:', selectedStudentId);
+  console.log('studentSubmission:', studentSubmission);
+
   const studentItems: SubmissionStudentItem[] = submissions.map((s) => ({
     id: s.user.user_id,
     name: s.user.fullname ?? '',
-    status:
-      s.answerText || s.filesJson
-        ? 'Sudah Mengumpulkan'
-        : 'Belum Mengumpulkan',
+    grade: s.user.grade ?? 0,
+    status: s.answerText || s.filesJson ? 'Sudah' : 'Belum',
   }));
 
   const isTeacher = currentUser?.role === 'teacher';
@@ -141,10 +169,20 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   const handleSelectItem = (id: number) => {
     setActiveId(id);
     if (activeTab === 'Tugas' && viewMode === 'submissionList') {
-      setSelectedStudentId(id); 
+      setSelectedStudentId(id);
     } else {
       setSelectedStudentId(null);
     }
+  };
+
+  const handleSelectAssignment = (id: number) => {
+    setActiveId(id);
+    setSelectedStudentId(null);
+    setViewMode('submissionList');
+  };
+
+  const handleSelectStudent = (id: number) => {
+    setSelectedStudentId(id);
   };
 
   const renderSidebarContent = (onSelectItem: (id: number) => void) => {
@@ -163,6 +201,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
       return (
         <ContentList
           {...commonProps}
+          onSelect={handleSelectItem}
           items={modules}
           renderTitle={(m) => m.title}
           typeLabel="Modul"
@@ -173,6 +212,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
       return (
         <ContentList
           {...commonProps}
+          onSelect={handleSelectAssignment}
           items={assignments}
           renderTitle={(t) => t.title}
           typeLabel="Tugas"
@@ -180,11 +220,22 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
       );
     }
     if (activeTab === 'Tugas' && viewMode === 'submissionList') {
+      if (!isAllowed) return null;
       return (
         <ContentList
           {...commonProps}
+          onSelect={handleSelectStudent}
           items={studentItems}
-          renderTitle={(s) => `${s.name} - ${s.status}`}
+          activeId={selectedStudentId}
+          selectedStudentId={selectedStudentId}
+          renderTitle={(s) => (
+            <div className="flex w-full items-center">
+              <span className="flex-grow">{s.name}</span>
+              <div
+                className={`text-xs font-semibold px-2 py-1 rounded-full`}
+              ></div>
+            </div>
+          )}
           typeLabel="Murid"
         />
       );
@@ -203,14 +254,39 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   };
 
   const renderContentPanel = () => {
+    if (
+      activeTab === 'Tugas' &&
+      viewMode === 'submissionList' &&
+      selectedStudentId &&
+      activeId
+    ) {
+      if (!studentSubmission) {
+        return <p className="p-4">Tidak ada submission dari murid ini.</p>;
+      }
+
+      const assignment = assignments.find((a) => a.id === activeId);
+      if (!assignment) return <p className="p-4">Tugas tidak ditemukan.</p>;
+
+      return (
+        <div className="bg-white p-4 rounded-md shadow-md">
+          <AnswerView
+            student={studentSubmission.user}
+            submission={studentSubmission}
+            assignment={assignment}
+          />
+        </div>
+      );
+    }
+
     if (!activeItem) return <p className="p-4">Pilih item di samping.</p>;
 
     if (activeTab === 'Materi') {
       const item = activeItem as (typeof modules)[0];
       return (
-        <div className=" bg-white p-4 rounded-md shadow-md">
+        <div className="bg-white p-4 rounded-md shadow-md">
           <ContentView
             title={item.title}
+            description={item.description || ''}
             contents={item.contents.map((c) => ({
               id: c.id,
               contentTitle: c.contentTitle,
@@ -222,13 +298,18 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
               contentData: c.contentData,
               filePath: c.filePath ?? undefined,
             }))}
-            description={item.description || ''}
           />
         </div>
       );
     }
+
     if (activeTab === 'Tugas') {
       const item = activeItem as (typeof assignments)[0];
+
+      if (isMySubmissionLoading) {
+        return <p className="p-4">Loading jawabanmu...</p>;
+      }
+
       return (
         <div className="bg-white p-4 rounded-md shadow-md">
           <h1 className="text-2xl font-bold">{item.title}</h1>
@@ -261,13 +342,29 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
               contentData: c.contentData,
               filePath: c.filePath ?? undefined,
             }))}
-            showAnswerBox={true} 
+            showAnswerBox={true}
             assignmentId={item.id}
-            selectedStudentId={selectedStudentId} 
+            selectedStudentId={selectedStudentId}
+            initialAnswerText={mySubmission?.answerText ?? ''}
+            initialFiles={
+              mySubmission?.filesJson
+                ? [
+                    {
+                      id: mySubmission.filesJson,
+                      name: mySubmission.filesJson
+                        .split('_')
+                        .slice(1)
+                        .join('_'),
+                    },
+                  ]
+                : []
+            }
+            isSubmitted={!!mySubmission?.submittedAt}
           />
         </div>
       );
     }
+
     if (activeTab === 'Ujian') {
       const item = activeItem as (typeof quizzes)[0];
       return (
@@ -278,6 +375,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
         />
       );
     }
+
     return <p className="p-4">Pilih item di samping.</p>;
   };
 
@@ -285,7 +383,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     <div className="min-h-screen bg-[#FDF8F4] relative">
       <Navbar />
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Hamburger untuk Mobile */}
+        {/* Hamburger for mobile */}
         <div className="flex justify-between items-center md:hidden mb-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -301,29 +399,26 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
           onTabChange={(tab) => {
             setActiveTab(tab);
             setActiveId(null);
-            setViewMode('default'); // Reset ke default setiap ganti tab
+            const newViewMode =
+              tab === 'Tugas' && isAllowed ? 'default' : 'default';
+            setViewMode(newViewMode);
             setSidebarOpen(false);
           }}
         />
 
         {['Materi', 'Tugas', 'Ujian'].includes(activeTab) && (
           <div className="mt-6 flex flex-col md:flex-row gap-6 relative">
-            {/* Sidebar */}
             <div
               className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg border transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:translate-x-0 md:w-[280px] md:min-w-[280px] md:max-w-[280px] md:rounded-lg md:shadow-md z-40`}
             >
               {renderSidebarContent(handleSelectItem)}
             </div>
-
-            {/* Overlay blur saat sidebar open */}
             {sidebarOpen && (
               <div
                 className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-30"
                 onClick={() => setSidebarOpen(false)}
               ></div>
             )}
-
-            {/* Main Content */}
             <div className="w-full md:w-9/12">{renderContentPanel()}</div>
           </div>
         )}

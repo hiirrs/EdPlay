@@ -21,9 +21,12 @@ interface ContentViewProps {
   title: string;
   contents: ContentData[];
   description?: string;
-  showAnswerBox?: boolean; 
+  showAnswerBox?: boolean;
   assignmentId?: number;
   selectedStudentId?: number | null;
+  initialAnswerText?: string;
+  initialFiles?: { id: string; name: string }[];
+  isSubmitted?: boolean;
 }
 
 function convertYoutubeToEmbedUrl(url: string) {
@@ -32,12 +35,10 @@ function convertYoutubeToEmbedUrl(url: string) {
   if (match?.[1]) {
     return `https://www.youtube.com/embed/${match[1]}`;
   }
-  return url; // fallback
+  return url;
 }
 
-const PdfViewer = dynamic(() => import('~/components/PdfViewer'), {
-  ssr: false,
-});
+const PdfViewer = dynamic(() => import('~/components/PdfViewer'), { ssr: false });
 
 export default function ContentView({
   title,
@@ -46,6 +47,9 @@ export default function ContentView({
   showAnswerBox = false,
   assignmentId,
   selectedStudentId = null,
+  initialAnswerText = '',
+  initialFiles = [],
+  isSubmitted = false,
 }: ContentViewProps) {
   return (
     <div className="bg-white rounded-lg">
@@ -80,7 +84,6 @@ export default function ContentView({
                     />
                   </div>
                 )}
-
                 {content.contentType === 'FILE' && content.filePath && (
                   <PdfViewer filePath={content.filePath} />
                 )}
@@ -101,12 +104,16 @@ export default function ContentView({
           <p className="text-gray-600">Belum ada konten.</p>
         )}
       </Accordion>
+
+      {/* Bagian Jawaban */}
       {showAnswerBox && assignmentId && (
         <div className="pt-6 border-t">
           <AnswerAssignment
             assignmentId={assignmentId}
             studentId={selectedStudentId ?? undefined}
-            isSubmitted={false}
+            initialAnswerText={initialAnswerText}
+            initialFiles={initialFiles}
+            isSubmitted={isSubmitted}
           />
         </div>
       )}

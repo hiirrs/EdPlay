@@ -21,7 +21,7 @@ export const appRouter = router({
   module: moduleRouter,
   assignment: assignmentRouter,
   quiz: quizRouter,
-  assignmentSubmisssion: assignmentSubmissionRouter,
+  assignmentSubmission: assignmentSubmissionRouter,
 });
 
 export const createCaller = createCallerFactory(appRouter);

@@ -2,15 +2,16 @@
 
 import { Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { Button } from '~/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface ContentListProps<T> {
   items: T[];
   activeId: number | null;
+  selectedStudentId?: number | null;
   onSelect: (id: number) => void;
-  renderTitle: (item: T) => string;
+  renderTitle: (item: T) => ReactNode;
   typeLabel?: string;
   isTeacher?: boolean;
   courseId?: number;
@@ -32,6 +33,13 @@ function getColor(typeLabel: string) {
         activeBg: 'bg-blue-50',
       };
     case 'tugas':
+      return {
+        badge: 'bg-yellow-100 border-yellow-400 text-[#2E3E83]',
+        addBtn: 'bg-yellow-500 hover:bg-yellow-600',
+        icon: 'text-yellow-600 hover:text-yellow-800',
+        activeBg: 'bg-yellow-50',
+      };
+    case 'murid':
       return {
         badge: 'bg-yellow-100 border-yellow-400 text-[#2E3E83]',
         addBtn: 'bg-yellow-500 hover:bg-yellow-600',
@@ -65,6 +73,7 @@ function getColor(typeLabel: string) {
 export default function ContentList<T extends { id: number }>({
   items,
   activeId,
+  selectedStudentId,
   onSelect,
   renderTitle,
   typeLabel = 'Item',
@@ -179,11 +188,11 @@ export default function ContentList<T extends { id: number }>({
           )}
 
           <Button
-              onClick={handleAddClick}
-              className={`${color.addBtn} w-full text-white text-xs hover:opacity-80 transition`}
-            >
-              + Tambah {typeLabel}
-            </Button>
+            onClick={handleAddClick}
+            className={`${color.addBtn} w-full text-white text-xs hover:opacity-80 transition`}
+          >
+            + Tambah {typeLabel}
+          </Button>
         </div>
       )}
 
@@ -209,7 +218,11 @@ export default function ContentList<T extends { id: number }>({
                 exit={{ opacity: 0, y: 10 }}
                 transition={{ duration: 0.2 }}
                 className={`flex items-center justify-between p-3 border-t cursor-pointer transition-colors w-full ${
-                  activeId === item.id ? color.activeBg : 'hover:bg-gray-50'
+                  (viewMode === 'submissionList'
+                    ? selectedStudentId === item.id
+                    : activeId === item.id)
+                    ? color.activeBg
+                    : 'hover:bg-gray-50'
                 }`}
                 onClick={() => onSelect(item.id)}
               >
@@ -218,17 +231,32 @@ export default function ContentList<T extends { id: number }>({
                     className={`${color.badge} rounded-md text-center w-14 py-1 border`}
                   >
                     <div className="text-xs font-medium">{typeLabel}</div>
-                    <div className="font-bold">{item.id}</div>
+                    {/* <div className="font-bold">{item.id}</div> */}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">
-                      {renderTitle(item)}
-                    </span>
+                    <div className="flex justify-between items-center w-full">
+                      <div className="flex justify-between items-center w-full text-sm font-semibold">
+                        {renderTitle(item)}
+                      </div>
+
+                      {/* Jika teacher dan submissionList, tampilkan badge */}
+                      {isTeacher && viewMode === 'submissionList' && (
+                        <div
+                          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                            (item as any).status === 'Sudah'
+                              ? 'bg-green-500 text-white'
+                              : 'bg-red-200 text-red-700'
+                          }`}
+                        >
+                          {(item as any).status}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Tombol Edit dan Delete */}
-                {isTeacher && (
+                {isTeacher && viewMode !== 'submissionList' && (
                   <div
                     className="flex items-center gap-2 pl-2 pr-2"
                     onClick={(e) => e.stopPropagation()}
