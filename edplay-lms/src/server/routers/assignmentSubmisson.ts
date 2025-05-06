@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure } from "../trpc";
 import { prisma } from "~/server/prisma";
 
 export const assignmentSubmissionRouter = router({
@@ -87,7 +87,7 @@ export const assignmentSubmissionRouter = router({
       });
     }),
 
-    getByStudent: publicProcedure
+  getByStudent: publicProcedure
     .input(z.object({
       assignmentId: z.number(),
       studentId: z.number(),
@@ -103,8 +103,8 @@ export const assignmentSubmissionRouter = router({
         },
       });
     }),
-  
-    getAllByAssignmentId: publicProcedure
+
+  getAllByAssignmentId: publicProcedure
     .input(z.object({
       assignmentId: z.number(),
     }))
@@ -114,8 +114,21 @@ export const assignmentSubmissionRouter = router({
           assignmentId: input.assignmentId,
         },
         include: {
-          user: true, 
+          user: true,
         },
+      });
+    }),
+  gradeSubmission: protectedProcedure
+    .input(
+      z.object({
+        submissionId: z.number(),
+        score: z.number().min(0).max(100), 
+      })
+    )
+    .mutation(async ({ input }) => {
+      return prisma.assignmentSubmission.update({
+        where: { id: input.submissionId },
+        data: { score: input.score },
       });
     }),
 });

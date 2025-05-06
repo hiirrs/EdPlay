@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Navbar from '../../NavbarAlt';
 import TabNavigation from './TabNav';
 import ContentView from './ContentView';
@@ -10,6 +10,7 @@ import { trpc } from '~/utils/trpc';
 import toast from 'react-hot-toast';
 import { Menu, X } from 'lucide-react';
 import CourseInfoTab from './CourseInfoTab';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 interface LearningPlatformProps {
   courseId: number;
@@ -23,7 +24,18 @@ interface SubmissionStudentItem {
 }
 
 export default function LearningPlatform({ courseId }: LearningPlatformProps) {
-  const [activeTab, setActiveTab] = useState('Materi');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const defaultTab = useMemo(() => {
+    const tab = searchParams.get('tab');
+    const validTabs = ['Informasi', 'Materi', 'Tugas', 'Ujian'];
+    return validTabs.includes(tab ?? '') ? tab! : 'Materi';
+  }, [searchParams]);
+
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
   const [activeId, setActiveId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'default' | 'submissionList'>(
     'default',
@@ -43,8 +55,11 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   const { data: currentUser } = trpc.user.me.useQuery();
 
   const { data: submissions = [] } =
-    trpc.assignment.getSubmissionsByAssignmentId.useQuery(
-      { assignmentId: activeId ?? 0 },
+    trpc.assignment.getEnrolledStudentsWithSubmission.useQuery(
+      {
+        assignmentId: activeId ?? 0,
+        courseId,
+      },
       {
         enabled:
           activeTab === 'Tugas' && viewMode === 'submissionList' && !!activeId,
@@ -77,10 +92,10 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   console.log('studentSubmission:', studentSubmission);
 
   const studentItems: SubmissionStudentItem[] = submissions.map((s) => ({
-    id: s.user.user_id,
-    name: s.user.fullname ?? '',
-    grade: s.user.grade ?? 0,
-    status: s.answerText || s.filesJson ? 'Sudah' : 'Belum',
+    id: s.id,
+    name: s.name ?? '',
+    grade: s.grade ?? 0,
+    status: s.status === 'Sudah' ? 'Sudah' : 'Belum',
   }));
 
   const isTeacher = currentUser?.role === 'teacher';
@@ -91,6 +106,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   const deleteModule = trpc.module.delete.useMutation();
   const deleteAssignment = trpc.assignment.delete.useMutation();
   const deleteQuiz = trpc.quiz.delete.useMutation();
+  const gradeSubmission = trpc.assignmentSubmission.gradeSubmission.useMutation();
 
   const handleDelete = async (
     id: number,
@@ -274,6 +290,10 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
             student={studentSubmission.user}
             submission={studentSubmission}
             assignment={assignment}
+            onSubmitScore={async (score) => {
+              await gradeSubmission.mutateAsync({ submissionId: studentSubmission.id, score });
+              toast.success('Nilai berhasil disimpan');
+            }}
           />
         </div>
       );
@@ -391,6 +411,20 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     return <p className="p-4">Pilih item di samping.</p>;
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setActiveId(null);
+    setSidebarOpen(false);
+    setViewMode(tab === 'Tugas' && isAllowed ? 'default' : 'default');
+
+    // Create a new URLSearchParams object
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+
+    // Update the URL with the current pathname and the new search params
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#FDF8F4] relative">
       <Navbar />
@@ -408,14 +442,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
         <TabNavigation
           tabs={['Informasi', 'Materi', 'Tugas', 'Ujian']}
           activeTab={activeTab}
-          onTabChange={(tab) => {
-            setActiveTab(tab);
-            setActiveId(null);
-            const newViewMode =
-              tab === 'Tugas' && isAllowed ? 'default' : 'default';
-            setViewMode(newViewMode);
-            setSidebarOpen(false);
-          }}
+          onTabChange={handleTabChange}
         />
 
         <div className="mt-6">

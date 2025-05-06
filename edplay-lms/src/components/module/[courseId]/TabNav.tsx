@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 
 interface TabNavigationProps {
   tabs: string[];
@@ -13,7 +14,14 @@ export default function TabNavigation({
   activeTab,
   onTabChange,
 }: TabNavigationProps) {
-  const [activeIndex, setActiveIndex] = useState(tabs.indexOf(activeTab));
+  const router = useRouter();
+  const params = useParams();
+  const courseIdRaw = params?.courseId;
+  const courseId = Array.isArray(courseIdRaw)
+    ? courseIdRaw[0]
+    : courseIdRaw;
+
+  const [activeIndex, setActiveIndex] = useState(0); // default index safe
 
   useEffect(() => {
     setActiveIndex(tabs.indexOf(activeTab));
@@ -21,6 +29,7 @@ export default function TabNavigation({
 
   const colors = ['#18D169', '#00A6FF', '#FAB83D', '#EB3957'];
 
+  // ✅ Let render happen regardless; only skip courseId-based actions
   return (
     <div className="relative border-black bg-gray-300 rounded-2xl overflow-hidden shadow-md w-full">
       <div className="relative w-full">
@@ -46,7 +55,14 @@ export default function TabNavigation({
                     ? 'text-white'
                     : 'text-gray-700 hover:bg-gray-200'
                 }`}
-              onClick={() => onTabChange(tab)}
+              onClick={() => {
+                onTabChange(tab);
+                if (courseId) {
+                  const search = new URLSearchParams();
+                  search.set('tab', tab);
+                  router.replace(`/course/${courseId}?${search.toString()}`);
+                }
+              }}
             >
               {tab}
             </button>

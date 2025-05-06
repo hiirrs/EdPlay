@@ -39,7 +39,9 @@ export const courseRouter = router({
           },
         },
       });
-    } else if (user.role === 'student') {
+    }
+
+    if (user.role === 'student') {
       const enrollments = await prisma.enrollment.findMany({
         where: { userId: user.userId },
         include: {
@@ -50,17 +52,40 @@ export const courseRouter = router({
           },
         },
       });
-      return enrollments.map((e) => e.course);
-    } else {
-      return prisma.course.findMany({
+
+      return enrollments.map((e) => ({
+        ...e.course,
+        teacher: e.course.teacher,
+        id: e.course.id, // ⚠️ pastikan id tersedia
+        name: e.course.name,
+        imageUrl: e.course.imageUrl,
+      }));
+    }
+
+    // Admin
+    return prisma.course.findMany({
+      include: {
+        teacher: {
+          select: { user_id: true, fullname: true },
+        },
+      },
+    });
+  }),
+
+  getById: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const course = await prisma.course.findUnique({
+        where: { id: input.id },
         include: {
-          teacher: {
-            select: { user_id: true, fullname: true },
-          },
+          teacher: { select: { user_id: true, fullname: true } },
         },
       });
-    }
-  }),
+      if (!course) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Kelas tidak ditemukan' });
+      }
+      return course;
+    }),
 
   create: protectedProcedure
     .input(z.object({
@@ -99,7 +124,9 @@ export const courseRouter = router({
     }))
     .mutation(async ({ input }) => {
       const course = await prisma.course.findUnique({ where: { id: input.id } });
-      if (!course) throw new TRPCError({ code: 'NOT_FOUND', message: 'Kelas tidak ditemukan' });
+      if (!course) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Kelas tidak ditemukan' });
+      }
 
       if (isCustomUpload(course.imageUrl) && course.imageUrl !== input.imageUrl) {
         const oldImagePath = path.join(process.cwd(), 'public', course.imageUrl);
@@ -146,10 +173,7 @@ export const courseRouter = router({
       });
 
       if (!course) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Token tidak ditemukan',
-        });
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Token tidak ditemukan' });
       }
 
       const alreadyEnrolled = await prisma.enrollment.findFirst({
@@ -165,7 +189,7 @@ export const courseRouter = router({
           message: 'Kamu sudah terdaftar di kelas ini',
         });
       }
-      
+
       if (!ctx.user.schoolId) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -182,19 +206,5 @@ export const courseRouter = router({
       });
 
       return { success: true };
-    }),
-
-
-  getById: protectedProcedure
-    .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
-      const course = await prisma.course.findUnique({
-        where: { id: input.id },
-        include: {
-          teacher: { select: { user_id: true, fullname: true } },
-        },
-      });
-      if (!course) throw new TRPCError({ code: 'NOT_FOUND', message: 'Kelas tidak ditemukan' });
-      return course;
     }),
 });

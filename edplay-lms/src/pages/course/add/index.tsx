@@ -58,7 +58,7 @@ export default function AddCoursePage() {
         educationLevel,
         grade,
         schoolId: currentUser?.schoolId || undefined,
-        imageUrl, 
+        imageUrl,
       });
       toast.success('Kelas berhasil dibuat');
       router.push('/');
@@ -69,28 +69,25 @@ export default function AddCoursePage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded shadow-md mt-10">
-      <h1 className="text-2xl font-bold mb-6 text-center">Tambah Kelas</h1>
-      <div className="space-y-4">
-        <Input
-          placeholder="Nama Kelas"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Textarea
-          placeholder="Deskripsi Kelas"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+    <div className="min-h-screen bg-[#FDF8F4] px-4 py-4">
+      <div className="w-full max-w-3xl mx-auto space-y-4 bg-white rounded-lg shadow-md p-6">
+        <Button variant="ghost" onClick={() => router.back()} className="text-[#f4aa1f]">
+          ← Kembali
+        </Button>
+
+        <h1 className="text-2xl font-bold mb-2">Tambah Kelas</h1>
+
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama Kelas" />
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Deskripsi Kelas" />
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Unggah Gambar Kelas (Opsional)</label>
+          <label className="text-sm font-medium">Unggah Gambar Kelas (Opsional)</label>
           <Input type="file" accept="image/*" onChange={handleImageChange} />
           {imageUrl && <p className="text-sm text-green-600">Gambar berhasil diunggah</p>}
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Jenjang Pendidikan</label>
+          <label className="text-sm font-medium">Jenjang Pendidikan</label>
           <select
             className="w-full border rounded p-2"
             value={educationLevel}
@@ -103,7 +100,7 @@ export default function AddCoursePage() {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Tingkat Kelas</label>
+          <label className="text-sm font-medium">Tingkat Kelas</label>
           <Input
             type="number"
             min={1}
@@ -113,7 +110,7 @@ export default function AddCoursePage() {
           />
         </div>
 
-        <Button className="w-full" onClick={handleCreate}>
+        <Button onClick={handleCreate} className="bg-blue-600 text-white w-full sm:w-auto">
           Buat Kelas
         </Button>
       </div>

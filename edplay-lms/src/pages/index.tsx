@@ -18,9 +18,10 @@ import {
 } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import toast from 'react-hot-toast';
+import Navbar from '~/components/NavbarAlt';
+
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('kelas');
   const [openModal, setOpenModal] = useState<string | null>(null);
   const [openTokenModal, setOpenTokenModal] = useState(false);
   const [token, setToken] = useState('');
@@ -70,26 +71,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
-      {/* Navigation */}
-      <nav className="bg-[#3f51b5] text-white p-4 flex justify-end">
-        <div className="flex gap-6">
-          {['tugas', 'kelas', 'ujian', 'profil'].map((tab) => (
-            <Button
-              key={tab}
-              variant="ghost"
-              className={`text-white hover:bg-[#4d5ec1] ${
-                activeTab === tab ? 'bg-[#4d5ec1]' : ''
-              }`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Button>
-          ))}
-          <Button variant="ghost" className="text-white hover:bg-[#4d5ec1]">
-            Keluar
-          </Button>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Welcome Section */}
       <div className="max-w-6xl mx-auto px-4 py-6">

@@ -152,9 +152,9 @@ export default function ContentList<T extends { id: number }>({
           {/* Toggle List Murid / List Tugas */}
           {typeLabel.toLowerCase() === 'tugas' && (
             <Button
-              disabled={!activeId}
+              disabled={viewMode === 'default' && !activeId}
               onClick={() => {
-                if (!activeId) return;
+                // if (!activeId) return;
                 setViewMode((prev) =>
                   prev === 'default' ? 'submissionList' : 'default',
                 );
@@ -172,7 +172,7 @@ export default function ContentList<T extends { id: number }>({
           {viewMode === 'submissionList' && (
             <Button
               onClick={() => {
-                if (!activeId) return;
+                // if (!activeId) return;
                 setViewMode((prev) =>
                   prev === 'default' ? 'submissionList' : 'default',
                 );

@@ -67,15 +67,15 @@ export function ClassCard({ data }: ClassCardProps) {
       id: data.id,
       name: data.subject,
       description: '',
-      educationLevel: 'SMP', 
-      grade: 7, 
+      educationLevel: 'SMP',
+      grade: 7,
       isActive: !data.isActive,
     });
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`/course/${data.id}/edit`);
+    router.push(`/course/${data.id}?tab=Informasi`);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
