@@ -4,15 +4,15 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - '3000:3000'
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5433/lms
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/lms
       JWT_SECRET: your_jwt_secret_here
     volumes:
       - .:/app
-      - /app/node_modules  
+      - /app/node_modules
     command: pnpm dev
     restart: unless-stopped
 
@@ -20,7 +20,7 @@ services:
     image: postgres:17
     restart: always
     ports:
-      - "5433:5432"
+      - '5433:5432'
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
