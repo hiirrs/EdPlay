@@ -29,16 +29,57 @@ export const courseRouter = router({
   getByUserRole: protectedProcedure.query(async ({ ctx }) => {
     const { user } = ctx;
 
+    const includeExtras = {
+      teacher: {
+        select: { user_id: true, fullname: true },
+      },
+      assignments: {
+        orderBy: { dueDate: 'desc' as const },
+        take: 1,
+        select: { dueDate: true },
+      },
+      modules: {
+        orderBy: { createdAt: 'desc' as const },
+        take: 1,
+        select: { id: true },
+      },
+      quizzes: {
+        where: { deadline: { gte: new Date() } },
+        take: 1,
+        select: { id: true },
+      },
+    };
+
+    const mapCourse = (course: any) => {
+      const assignment = course.assignments?.[0] ?? null;
+      const deadline = assignment?.dueDate ? new Date(assignment.dueDate) : null;
+
+      return {
+        id: course.id,
+        subject: course.name,
+        description: course.description,
+        educationLevel: course.educationLevel,
+        grade: course.grade,
+        class: `Kelas ${course.grade}`,
+        token: course.enrollToken || '',
+        imageUrl: course.imageUrl,
+        teacher: course.teacher?.fullname ?? 'Tanpa Guru',
+        isActive: course.isActive,
+        hasNewMaterial: Array.isArray(course.modules) && course.modules.length > 0,
+        hasExam: Array.isArray(course.quizzes) && course.quizzes.length > 0,
+        taskDate: deadline?.toLocaleDateString('id-ID') ?? '',
+        taskTime: deadline?.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) ?? '',
+        isEditable: user.role === 'teacher' || user.role === 'admin',
+      };
+    };
+
     if (user.role === 'teacher') {
-      return prisma.course.findMany({
+      const courses = await prisma.course.findMany({
         where: { teacherId: user.userId },
         orderBy: { createdAt: 'desc' },
-        include: {
-          teacher: {
-            select: { user_id: true, fullname: true },
-          },
-        },
+        include: includeExtras,
       });
+      return courses.map(mapCourse);
     }
 
     if (user.role === 'student') {
@@ -46,31 +87,21 @@ export const courseRouter = router({
         where: { userId: user.userId },
         include: {
           course: {
-            include: {
-              teacher: { select: { user_id: true, fullname: true } },
-            },
+            include: includeExtras,
           },
         },
       });
 
-      return enrollments.map((e) => ({
-        ...e.course,
-        teacher: e.course.teacher,
-        id: e.course.id, // ⚠️ pastikan id tersedia
-        name: e.course.name,
-        imageUrl: e.course.imageUrl,
-      }));
+      return enrollments.map((e) => mapCourse(e.course));
     }
 
     // Admin
-    return prisma.course.findMany({
-      include: {
-        teacher: {
-          select: { user_id: true, fullname: true },
-        },
-      },
+    const courses = await prisma.course.findMany({
+      include: includeExtras,
     });
+    return courses.map(mapCourse);
   }),
+
 
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))

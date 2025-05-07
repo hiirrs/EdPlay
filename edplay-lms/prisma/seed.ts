@@ -3,6 +3,16 @@ import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
+function generateToken(length = 5) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let token = ''
+  for (let i = 0; i < length; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return token
+}
+
+
 async function main() {
   // Reset data
   await prisma.answer.deleteMany({})
@@ -88,6 +98,7 @@ async function main() {
             schoolId: schools[level].sch_id,
             educationLevel: level,
             grade: (i % 12) + 1,
+            enrollToken: generateToken(5),
           },
         })
       })

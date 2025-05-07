@@ -1,11 +1,9 @@
-
 import { z } from 'zod';
 import { prisma } from '~/server/prisma';
 import { router, publicProcedure } from "../trpc";
 import { TRPCError } from '@trpc/server';
 import { createJWT, createCookie } from '~/utils/jwt';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 export const userRouter = router({
     register: publicProcedure
@@ -18,7 +16,7 @@ export const userRouter = router({
                 grade: z.number(),
             }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
             const existingUser = await prisma.user.findUnique({
                 where: { username: input.username },
             });
@@ -38,16 +36,29 @@ export const userRouter = router({
                     fullname: input.fullname,
                     password: hashedPass,
                     schoolId: input.schoolId,
-                    grade: input.grade,
+                    grade: input.grade,   
                 },
             });
 
-            const token = jwt.sign(
-                { userId: user.user_id, role: user.role, schoolId: user.schoolId },
-                process.env.JWT_SECRET!,
-                { expiresIn: '3h' },
-            );
-            return { token, user };
+            const token = createJWT({ 
+                userId: user.user_id, 
+                role: user.role, 
+                schoolId: user.schoolId 
+            });
+            
+            // Set cookie pada response
+            if (ctx.res) {
+                ctx.res.setHeader('Set-Cookie', createCookie(token));
+            }
+            
+            return { 
+                user: {
+                    user_id: user.user_id,
+                    fullname: user.fullname,
+                    role: user.role,
+                    schoolId: user.schoolId
+                } 
+            };
         }),
 
     login: publicProcedure
@@ -61,28 +72,66 @@ export const userRouter = router({
             const user = await prisma.user.findUnique({ where: { username: input.username } });
 
             if (!user || !(await bcrypt.compare(input.password, user.password))) {
-                throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' });
+                throw new TRPCError({ 
+                    code: 'UNAUTHORIZED', 
+                    message: 'Username atau password salah' 
+                });
             }
 
-            const token = createJWT({ userId: user.user_id, role: user.role, schoolId: user.schoolId });
+            const token = createJWT({ 
+                userId: user.user_id, 
+                role: user.role, 
+                schoolId: user.schoolId 
+            });
 
             if (ctx.res) {
                 ctx.res.setHeader('Set-Cookie', createCookie(token));
             }
 
-            return { user };
+            return { 
+                user: {
+                    user_id: user.user_id,
+                    fullname: user.fullname,
+                    role: user.role,
+                    schoolId: user.schoolId
+                } 
+            };
         }),
 
-    me: publicProcedure.query(({ ctx }) => {
-        if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
-        return prisma.user.findUnique({
+    me: publicProcedure.query(async ({ ctx }) => {
+        console.log('Context user in me procedure:', ctx.user);
+        
+        if (!ctx.user) {
+            throw new TRPCError({ 
+                code: 'UNAUTHORIZED',
+                message: 'User tidak terautentikasi' 
+            });
+        }
+        
+        const user = await prisma.user.findUnique({
             where: { user_id: ctx.user.userId },
-            select: { user_id: true, role: true, fullname: true, schoolId: true },
+            select: { 
+                user_id: true, 
+                role: true, 
+                fullname: true, 
+                schoolId: true 
+            },
         });
+        
+        if (!user) {
+            throw new TRPCError({ 
+                code: 'NOT_FOUND',
+                message: 'User tidak ditemukan' 
+            });
+        }
+        
+        return user;
     }),
 
     logout: publicProcedure.mutation(({ ctx }) => {
-        ctx.res.setHeader('Set-Cookie', 'token=; Path=/; Max-Age=0');
+        if (ctx.res) {
+            ctx.res.setHeader('Set-Cookie', 'token=; Path=/; Max-Age=0');
+        }
         return { success: true };
     }),
 });

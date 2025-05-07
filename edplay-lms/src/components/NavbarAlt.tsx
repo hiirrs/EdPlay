@@ -47,10 +47,10 @@ export default function Navbar() {
           <>
             {/* Desktop navigation */}
             <div className="hidden md:flex space-x-8 items-center">
-              <Link href="#" className="font-medium hover:text-gray-200">
+              <Link href="/tugas" className="font-medium hover:text-gray-200">
                 Tugas
               </Link>
-              <Link href="#" className="font-medium hover:text-gray-200">
+              <Link href="/course" className="font-medium hover:text-gray-200">
                 Kelas
               </Link>
             </div>
@@ -70,14 +70,14 @@ export default function Navbar() {
                 </div>
                 <div className="flex flex-col items-center justify-center space-y-8 flex-1">
                   <Link
-                    href="#"
+                    href="/tugas"
                     className="font-medium text-xl hover:text-gray-200"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Tugas
                   </Link>
                   <Link
-                    href="#"
+                    href="/course"
                     className="font-medium text-xl hover:text-gray-200"
                     onClick={() => setIsMenuOpen(false)}
                   >

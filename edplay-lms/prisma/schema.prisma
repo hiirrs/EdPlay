@@ -75,7 +75,7 @@ model Course {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   isActive       Boolean        @default(true)
-  enrollToken    String         @unique @default(dbgenerated("gen_random_uuid()"))
+  enrollToken    String         @unique 
 
   enrollments Enrollment[]
   assignments Assignment[]

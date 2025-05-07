@@ -26,8 +26,6 @@ import type { NextPageWithLayout } from '../_app';
 import Navbar from '~/components/NavbarAlt';
 import { useRouter } from 'next/navigation';
 
-
-
 const RegistrationPage: NextPageWithLayout = () => {
   const router = useRouter();
 
@@ -43,7 +41,7 @@ const RegistrationPage: NextPageWithLayout = () => {
     confirmPassword: '',
     schoolId: '',
     schoolLevel: '',
-    grade: 0, 
+    grade: 0,
     schoolName: '',
   });
 
@@ -53,15 +51,15 @@ const RegistrationPage: NextPageWithLayout = () => {
         ed_level: formData.schoolLevel,
         search: schoolQuery,
       },
-      { enabled: !!formData.schoolLevel }
+      { enabled: !!formData.schoolLevel },
     );
 
   const gradeOptions =
     formData.schoolLevel === 'SD'
       ? [1, 2, 3, 4, 5, 6]
       : formData.schoolLevel === 'SMP' || formData.schoolLevel === 'SMA'
-      ? [1, 2, 3]
-      : [];
+        ? [1, 2, 3]
+        : [];
 
   useEffect(() => {
     if (/\s/.test(formData.username)) {
@@ -95,11 +93,10 @@ const RegistrationPage: NextPageWithLayout = () => {
   };
 
   const [registeredData, setRegisteredData] = useState<{
-    token: string;
     user: {
       user_id: number;
-      username: string;
       fullname: string;
+      role: string;
       schoolId: number;
     };
   } | null>(null);
@@ -187,7 +184,11 @@ const RegistrationPage: NextPageWithLayout = () => {
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5 mt-6" /> : <Eye className="h-5 w-5 mt-6" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 mt-6" />
+                    ) : (
+                      <Eye className="h-5 w-5 mt-6" />
+                    )}
                   </button>
                 </div>
                 <div className="space-y-2 relative">
@@ -198,7 +199,10 @@ const RegistrationPage: NextPageWithLayout = () => {
                     placeholder="Konfirmasi Password"
                     value={formData.confirmPassword}
                     onChange={(e) =>
-                      setFormData({ ...formData, confirmPassword: e.target.value })
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
                     }
                     required
                   />
@@ -207,11 +211,17 @@ const RegistrationPage: NextPageWithLayout = () => {
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setConfirmShowPassword(!showConfirmPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5 mt-6" /> : <Eye className="h-5 w-5 mt-6" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 mt-6" />
+                    ) : (
+                      <Eye className="h-5 w-5 mt-6" />
+                    )}
                   </button>
                 </div>
               </div>
-              {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
+              {errorMessage && (
+                <p className="text-red-500 text-sm">{errorMessage}</p>
+              )}
               <Button type="submit" variant="outline" className="w-full">
                 Selanjutnya
               </Button>
@@ -248,7 +258,7 @@ const RegistrationPage: NextPageWithLayout = () => {
                   >
                     <div className="aspect-square bg-gray-100 rounded-lg">
                       <Image
-                        src={`/placeholder.svg?height=100&width=100`}
+                        src={`/images/UI/${level}-Image.png`}
                         alt={`${level} illustration`}
                         width={100}
                         height={100}
@@ -325,8 +335,13 @@ const RegistrationPage: NextPageWithLayout = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600">
-                {registerMutation.status === 'pending' ? 'Registering...' : 'Register'}
+              <Button
+                type="submit"
+                className="w-full bg-orange-500 hover:bg-orange-600"
+              >
+                {registerMutation.status === 'pending'
+                  ? 'Registering...'
+                  : 'Register'}
               </Button>
               {registerMutation.error && (
                 <p className="text-red-500">{registerMutation.error.message}</p>

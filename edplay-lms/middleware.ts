@@ -2,51 +2,42 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  // Get the token and current path
   const token = request.cookies.get('token')?.value;
   const pathname = request.nextUrl.pathname;
+  
+  console.log(`Middleware running - Path: ${pathname}, Token exists: ${!!token}`);
 
-  const isAuthPage =
-    pathname.startsWith('/login') || pathname.startsWith('/masuk');
+  // Define which pages are auth pages (login/register)
+  const isAuthPage = 
+    pathname === '/login' || 
+    pathname === '/masuk' || 
+    pathname === '/daftar';
 
-  const isProtectedRoute =
+  // Define which pages require authentication
+  const isProtectedRoute = 
     pathname === '/' ||
     pathname.startsWith('/course') ||
     pathname.startsWith('/dashboard');
 
-  // Redirect ke /masuk jika belum login dan akses protected page
-  if (!token && isProtectedRoute && !isAuthPage) {
-    return NextResponse.redirect(new URL('/masuk', request.url));
-  }
-
-  // Jika sudah login dan akses '/', redirect ke /course
-  if (token && pathname === '/') {
+  // IMPORTANT: Check this logic carefully
+  if (token && isAuthPage) {
+    // If user has token but is on auth page, redirect to course
+    console.log('User has token but is on auth page, redirecting to /course');
     return NextResponse.redirect(new URL('/course', request.url));
   }
 
-  // Lanjutkan response
-  const response = NextResponse.next();
-
-  // CORS: header tambahan untuk development mode
-  const allowedOrigins =
-    process.env.NODE_ENV === 'production'
-      ? ['your-production-domain.com']
-      : ['http://localhost:3000'];
-
-  const origin = request.headers.get('origin') || '';
-  if (allowedOrigins.includes(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version',
-    );
+  if (!token && isProtectedRoute) {
+    // If user has no token but tries to access protected route
+    console.log('User has no token but is on protected route, redirecting to /masuk');
+    return NextResponse.redirect(new URL('/masuk', request.url));
   }
 
-  return response;
+  // If neither condition is met, continue with the request
+  console.log('Continuing with normal request');
+  return NextResponse.next();
 }
 
-// Middleware hanya berlaku untuk route berikut
 export const config = {
-  matcher: ['/', '/course/:path*', '/dashboard/:path*'],
+  matcher: ['/', '/masuk', '/login', '/daftar', '/course/:path*', '/dashboard/:path*'],
 };
