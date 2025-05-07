@@ -18,7 +18,7 @@ const LoginPage: NextPageWithLayout = () => {
   const loginMutation = trpc.user.login.useMutation({
     onSuccess() {
       toast.success('Login successful!');
-      router.push('/'); 
+      router.push('/course'); 
     },
     onError(error: any) {
       const errorMessage = error.message || 'Login failed. Please try again.';

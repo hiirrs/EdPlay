@@ -24,9 +24,13 @@ import toast from 'react-hot-toast';
 import { trpc } from '~/utils/trpc';
 import type { NextPageWithLayout } from '../_app';
 import Navbar from '~/components/NavbarAlt';
+import { useRouter } from 'next/navigation';
+
 
 
 const RegistrationPage: NextPageWithLayout = () => {
+  const router = useRouter();
+
   const [step, setStep] = useState(1);
   const [schoolQuery, setSchoolQuery] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -102,8 +106,9 @@ const RegistrationPage: NextPageWithLayout = () => {
 
   const registerMutation = trpc.user.register.useMutation({
     onSuccess(data) {
-      toast.success('Registration successful!');
+      toast.success('Pendaftaran Berhasil!');
       setRegisteredData(data);
+      router.push('/masuk');
     },
     onError(error: any) {
       toast.error('Registration error: ' + error.message);

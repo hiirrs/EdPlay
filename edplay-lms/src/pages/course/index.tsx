@@ -63,11 +63,11 @@ export default function Dashboard() {
     isEditable: user?.role === 'teacher' || user?.role === 'admin',
   }));
 
-  const leaderboardData = [
-    { rank: 14, name: 'Fulan 2', score: 2350 },
-    { rank: 15, name: 'Fulan', score: 2320 },
-    { rank: 16, name: 'Fulan 3', score: 2280 },
-  ];
+  // const leaderboardData = [
+  //   { rank: 14, name: 'Fulan 2', score: 2350 },
+  //   { rank: 15, name: 'Fulan', score: 2320 },
+  //   { rank: 16, name: 'Fulan 3', score: 2280 },
+  // ];
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -91,7 +91,7 @@ export default function Dashboard() {
         </div>
 
         {/* Features */}
-        <Card className="mb-8 overflow-hidden bg-[#172b4d] text-white border-0">
+        {/* <Card className="mb-8 overflow-hidden bg-[#172b4d] text-white border-0">
           <CardContent className="p-0">
             <div className="p-4">
               <h2 className="text-xl font-bold mb-2">Leaderboard</h2>
@@ -130,7 +130,7 @@ export default function Dashboard() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Class List */}
         <div>
