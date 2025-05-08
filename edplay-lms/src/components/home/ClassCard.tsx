@@ -47,7 +47,7 @@ export function ClassCard({ data }: ClassCardProps) {
   const [pendingDelete, setPendingDelete] = useState(false);
   const [isActive, setIsActive] = useState(data.isActive);
   const [isToggling, setIsToggling] = useState(false);
-  
+
   // Debug: Log received data to console
   useEffect(() => {
     console.log('ClassCard received data:', data);
@@ -62,9 +62,12 @@ export function ClassCard({ data }: ClassCardProps) {
     },
     onError: (error) => {
       setIsToggling(false);
-      toast.error('Gagal mengubah status kelas: ' + (error.message || 'Silakan coba lagi'));
+      toast.error(
+        'Gagal mengubah status kelas: ' +
+          (error.message || 'Silakan coba lagi'),
+      );
       console.error('Toggle error details:', error);
-    }
+    },
   });
 
   const deleteMutation = trpc.course.delete.useMutation({
@@ -84,23 +87,33 @@ export function ClassCard({ data }: ClassCardProps) {
   });
 
   const handleToggleActive = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    
+    e.stopPropagation();
+
     if (isToggling) return;
     setIsToggling(true);
-    
+
+    // Ensure id is a valid number - Parse as int and verify
+    const courseId = parseInt(String(data.id), 10);
+
+    // Only proceed if we have a valid numeric ID
+    if (isNaN(courseId)) {
+      toast.error('ID kelas tidak valid');
+      setIsToggling(false);
+      return;
+    }
+
     const updatePayload = {
-      id: Number(data.id), 
-      name: data.subject || '', 
+      id: courseId,
+      name: data.subject || '',
       description: data.description || '',
-      educationLevel: data.educationLevel, 
-      grade: Number(data.grade), 
+      educationLevel: data.educationLevel || 'SD',
+      grade: typeof data.grade === 'number' ? data.grade : 1,
       isActive: !isActive,
-      ...(data.imageUrl ? { imageUrl: data.imageUrl } : {})
+      ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
     };
-    
+
     console.log('Sending update payload:', updatePayload);
-    
+
     toggleMutation.mutate(updatePayload);
   };
 
@@ -116,8 +129,17 @@ export function ClassCard({ data }: ClassCardProps) {
 
   const onConfirmDelete = () => {
     setPendingDelete(true);
+    const courseId = parseInt(String(data.id), 10);
+
+    if (isNaN(courseId)) {
+      toast.error('ID kelas tidak valid');
+      setPendingDelete(false);
+      setShowConfirm(false);
+      return;
+    }
+
     deleteMutation.mutate(
-      { id: data.id },
+      { id: courseId },
       {
         onSettled: () => {
           setShowConfirm(false);
@@ -141,101 +163,118 @@ export function ClassCard({ data }: ClassCardProps) {
     <>
       <Card
         onClick={handleCardClick}
-        className="overflow-hidden hover:shadow-md transition-shadow rounded-2xl relative cursor-pointer"
+        className="h-[232px] overflow-hidden hover:shadow-md transition-shadow rounded-2xl relative cursor-pointer"
       >
-        <CardContent className="flex p-0">
-          <div className="relative w-24 md:w-28 lg:w-32 aspect-[3/4] shrink-0">
+        <CardContent className="flex p-0 h-full">
+          {/* Gambar */}
+          <div className="relative w-28 h-full shrink-0">
             <Image
               src={data.imageUrl || '/images/default.png'}
               alt={data.subject || 'Kelas'}
               fill
               className="object-cover rounded-l-2xl"
+              sizes="96px"
             />
           </div>
 
-          <div className="flex-1 p-4">
-            {/* Tampilkan nama mata pelajaran, atau "Tidak diketahui" jika tidak ada */}
-            <h3 className="font-bold text-lg">
-              {data.subject || "Tidak diketahui"}
-            </h3>
-            <p className="text-gray-500 mb-2">Kelas: {data.class}</p>
-            
-            {/* Selalu tampilkan token. Jika tidak ada, tampilkan "Tidak diketahui" */}
-            <div className="flex items-center mb-2">
-              <div className="bg-gray-100 text-gray-800 text-xs rounded px-2 py-1 flex items-center">
-                <span className="mr-1">Token: {data.token || "Tidak diketahui"}</span>
-                {data.token && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 w-6 p-0" 
-                    onClick={copyToken}
-                    title="Salin token"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                )}
+          {/* Konten */}
+          <div className="flex flex-1 flex-col justify-between p-3 overflow-hidden">
+            <div className="overflow-hidden">
+              <h3 className="font-bold text-lg truncate">
+                {data.subject || 'Tidak diketahui'}
+              </h3>
+              <p className="text-gray-500 text-sm mb-2 truncate">
+                Kelas: {data.class}
+              </p>
+
+              {/* Token */}
+              <div className="flex items-center mb-2">
+                <div className="bg-gray-100 text-gray-800 text-xs rounded px-2 py-1 flex items-center">
+                  <span className="mr-1 truncate">
+                    Token: {data.token || 'Tidak diketahui'}
+                  </span>
+                  {data.token && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={copyToken}
+                      title="Salin token"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              {/* Informasi Tambahan atau Spacer */}
+              {data.taskDate && data.taskTime ? (
+                <div className="flex items-center mb-1">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                  <span className="text-sm text-gray-600 truncate">
+                    Tugas ({data.taskDate} @{data.taskTime})
+                  </span>
+                </div>
+              ) : (
+                <div className="h-5" /> // spacer
+              )}
+
+              {data.hasNewMaterial ? (
+                <div className="flex items-center mb-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                  <span className="text-sm text-gray-600 truncate">
+                    Materi Baru
+                  </span>
+                </div>
+              ) : (
+                <div className="h-2" />
+              )}
+
+              {data.hasExam ? (
+                <div className="flex items-center mb-1">
+                  <div className="w-3 h-3 rounded-full bg-orange-600 mr-2"></div>
+                  <span className="text-sm text-gray-600 truncate">Ujian</span>
+                </div>
+              ) : (
+                <div className="h-2" />
+              )}
             </div>
 
-            {data.taskDate && data.taskTime && (
-              <div className="flex items-center mb-1">
-                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-                <span className="text-sm text-gray-600">
-                  Tugas ({data.taskDate} @{data.taskTime})
-                </span>
-              </div>
-            )}
+            {/* Footer */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-700 truncate">{data.teacher}</p>
+              {data.isEditable && (
+                <div className="flex items-center gap-2 ml-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-0 h-8"
+                    onClick={handleToggleActive}
+                    disabled={isToggling}
+                  >
+                    <Switch checked={isActive} disabled={isToggling} />
+                  </Button>
 
-            {data.hasNewMaterial && (
-              <div className="flex items-center mb-1">
-                <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-                <span className="text-sm text-gray-600">Materi Baru</span>
-              </div>
-            )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEdit}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Pencil className="h-4 w-4 text-blue-600" />
+                  </Button>
 
-            {data.hasExam && (
-              <div className="flex items-center mb-1">
-                <div className="w-3 h-3 rounded-full bg-orange-600 mr-2"></div>
-                <span className="text-sm text-gray-600">Ujian</span>
-              </div>
-            )}
-
-            <p className="text-sm text-gray-700 mt-2">{data.teacher}</p>
-
-            {data.isEditable && (
-              <div className="mt-3 flex items-center justify-end gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex items-center gap-2 px-2 py-1 h-8" 
-                  onClick={handleToggleActive}
-                  disabled={isToggling}
-                >
-                  <Switch checked={isActive} disabled={isToggling} />
-                  <span className="text-sm">
-                    {isActive ? 'Aktif' : 'Nonaktif'}
-                  </span>
-                </Button>
-
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleEdit}
-                  className="h-8 w-8 p-0"
-                >
-                  <Pencil className="h-4 w-4 text-blue-600" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleDelete}
-                  className="h-8 w-8 p-0"
-                >
-                  <Trash2 className="h-4 w-4 text-red-600" />
-                </Button>
-              </div>
-            )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -247,7 +286,8 @@ export function ClassCard({ data }: ClassCardProps) {
             <DialogTitle>Hapus Kelas</DialogTitle>
           </DialogHeader>
           <p>
-            Yakin ingin menghapus kelas <strong>{data.subject || "ini"}</strong>?
+            Yakin ingin menghapus kelas <strong>{data.subject || 'ini'}</strong>
+            ?
           </p>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowConfirm(false)}>

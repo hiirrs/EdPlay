@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { BookOpen, Calculator, Microscope, PenTool } from 'lucide-react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { trpc } from '~/utils/trpc';
 import { ClassCard } from '~/components/home/ClassCard';
@@ -51,16 +50,20 @@ export default function Dashboard() {
 
   const mappedClassData = classData.map((course) => ({
     id: course.id,
-    subject: course.name,
+    subject: course.subject, 
+    description: course.description,
+    educationLevel: course.educationLevel,
+    grade: course.grade,
     class: `Kelas ${course.grade ?? '-'}`,
-    taskDate: '09/11/23',
-    taskTime: '12:00',
-    hasNewMaterial: true,
-    hasExam: false,
-    teacher: course.teacher?.fullname ?? 'Tidak diketahui',
+    taskDate: course.taskDate || '',
+    taskTime: course.taskTime || '',
+    hasNewMaterial: course.hasNewMaterial,
+    hasExam: course.hasExam,
+    teacher: course.teacher,
     imageUrl: course.imageUrl ?? '/images/default.png',
     isActive: course.isActive,
     isEditable: user?.role === 'teacher' || user?.role === 'admin',
+    token: course.token || '',
   }));
 
   // const leaderboardData = [

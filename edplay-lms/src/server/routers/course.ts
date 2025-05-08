@@ -25,6 +25,27 @@ function isCustomUpload(imageUrl: string | undefined) {
   return imageUrl?.startsWith('/uploads/');
 }
 
+// Improved input validation schema for course update
+const courseUpdateSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().optional(),
+  educationLevel: z.enum(['SD', 'SMP', 'SMA']),
+  grade: z.coerce.number(), // Use coerce to handle string inputs
+  isActive: z.boolean(),
+  imageUrl: z.string().optional(),
+});
+
+// Improved input validation schema for course creation
+const courseCreateSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  educationLevel: z.enum(['SD', 'SMP', 'SMA']),
+  grade: z.coerce.number(), // Use coerce to handle string inputs
+  imageUrl: z.string().optional(),
+  schoolId: z.number().optional(),
+});
+
 export const courseRouter = router({
   getByUserRole: protectedProcedure.query(async ({ ctx }) => {
     const { user } = ctx;
@@ -58,8 +79,8 @@ export const courseRouter = router({
         id: course.id,
         subject: course.name,
         description: course.description,
-        educationLevel: course.educationLevel,
-        grade: course.grade,
+        educationLevel: course.educationLevel || 'SD', // Provide default value if undefined
+        grade: typeof course.grade === 'number' ? course.grade : 1, // Ensure grade is a number
         class: `Kelas ${course.grade}`,
         token: course.enrollToken || '',
         imageUrl: course.imageUrl,
@@ -119,23 +140,19 @@ export const courseRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.object({
-      name: z.string(),
-      description: z.string().optional(),
-      educationLevel: z.enum(['SD', 'SMP', 'SMA']),
-      grade: z.number(),
-      imageUrl: z.string().optional(),
-      schoolId: z.number().optional(),
-    }))
+    .input(courseCreateSchema)
     .mutation(({ input, ctx }) => {
+      // Ensure grade is a number
+      const grade = typeof input.grade === 'number' ? input.grade : 1;
+      
       return prisma.course.create({
         data: {
           name: input.name,
           description: input.description,
           teacherId: ctx.user.userId,
           educationLevel: input.educationLevel,
-          grade: input.grade,
-          imageUrl: input.imageUrl || defaultImagesByGrade[input.grade],
+          grade: grade,
+          imageUrl: input.imageUrl || defaultImagesByGrade[grade],
           schoolId: input.schoolId || ctx.user.schoolId,
           enrollToken: nanoid(5),
           isActive: true,
@@ -144,15 +161,7 @@ export const courseRouter = router({
     }),
 
   update: protectedProcedure
-    .input(z.object({
-      id: z.number(),
-      name: z.string(),
-      description: z.string().optional(),
-      educationLevel: z.enum(['SD', 'SMP', 'SMA']),
-      grade: z.number(),
-      isActive: z.boolean(),
-      imageUrl: z.string().optional(),
-    }))
+    .input(courseUpdateSchema)
     .mutation(async ({ input }) => {
       const course = await prisma.course.findUnique({ where: { id: input.id } });
       if (!course) {
@@ -166,15 +175,18 @@ export const courseRouter = router({
         }
       }
 
+      // Ensure grade is a number
+      const grade = typeof input.grade === 'number' ? input.grade : 1;
+
       return prisma.course.update({
         where: { id: input.id },
         data: {
           name: input.name,
           description: input.description,
           educationLevel: input.educationLevel,
-          grade: input.grade,
+          grade: grade,
           isActive: input.isActive,
-          imageUrl: input.imageUrl ?? defaultImagesByGrade[input.grade],
+          imageUrl: input.imageUrl ?? defaultImagesByGrade[grade],
         },
       });
     }),
