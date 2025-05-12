@@ -92,6 +92,9 @@ importers:
       aframe:
         specifier: ^1.7.1
         version: 1.7.1
+      aframe-react:
+        specifier: ^4.4.0
+        version: 4.4.0
       bcrypt:
         specifier: ^5.1.1
         version: 5.1.1
@@ -2330,6 +2333,9 @@ packages:
     resolution: {integrity: sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  aframe-react@4.4.0:
+    resolution: {integrity: sha512-/3C0fhCRJywLSP7JsZM/nG/bGQxbt8oEnRK3DLOUmcCtd6xulpwOf8i/Mb0Mbg/U77Y097wdSZ0mVXgEL2+u4Q==}
 
   aframe@1.7.1:
     resolution: {integrity: sha512-dcc7PWI5z8pyJ0s2W0mUd8d83339frgMXhUvWr1yxkdgg6zSExkuQwsSJjiNn7XWKMUUqKYDvV/WzQQRA+OBXA==}
@@ -7419,6 +7425,8 @@ snapshots:
       acorn: 8.14.0
 
   acorn@8.14.0: {}
+
+  aframe-react@4.4.0: {}
 
   aframe@1.7.1:
     dependencies:
