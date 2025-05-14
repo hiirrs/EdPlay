@@ -92,9 +92,18 @@ importers:
       aframe:
         specifier: ^1.7.1
         version: 1.7.1
+      aframe-environment-component:
+        specifier: ^1.5.0
+        version: 1.5.0
+      aframe-look-at-component:
+        specifier: ^1.0.0
+        version: 1.0.0
       aframe-react:
         specifier: ^4.4.0
         version: 4.4.0
+      aframe-troika-text:
+        specifier: ^0.14.0
+        version: 0.14.0(aframe@1.7.1)(three@0.176.0)
       bcrypt:
         specifier: ^5.1.1
         version: 5.1.1
@@ -2334,8 +2343,19 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  aframe-environment-component@1.5.0:
+    resolution: {integrity: sha512-6Ir1EKgZ5iMwV/ia0TYp9M/iSeLfQ/FmEmVtI7XiYAvBkev8ASNeAEmZpOQ0xqM8Dq8FLIdFDdQ+v0L4GYPLHg==}
+
+  aframe-look-at-component@1.0.0:
+    resolution: {integrity: sha512-urbsU4qaKg3drIShNDIrNQyuVh+yiFCbP50FMig7uDbVOlMZU3Tcj4oWbjxx3neD07Rn8atjpwBeqc6lceKGTw==}
+
   aframe-react@4.4.0:
     resolution: {integrity: sha512-/3C0fhCRJywLSP7JsZM/nG/bGQxbt8oEnRK3DLOUmcCtd6xulpwOf8i/Mb0Mbg/U77Y097wdSZ0mVXgEL2+u4Q==}
+
+  aframe-troika-text@0.14.0:
+    resolution: {integrity: sha512-jmX1NxCDGN8AKcNBz0ojuC2i3A9Xe+x/FJNMWjGJAjqijfytD74Rkk5a5xUh6pHHMlJbO3erQYzOTCB610RRvQ==}
+    peerDependencies:
+      aframe: 1.1.x - 1.7.x
 
   aframe@1.7.1:
     resolution: {integrity: sha512-dcc7PWI5z8pyJ0s2W0mUd8d83339frgMXhUvWr1yxkdgg6zSExkuQwsSJjiNn7XWKMUUqKYDvV/WzQQRA+OBXA==}
@@ -7426,7 +7446,18 @@ snapshots:
 
   acorn@8.14.0: {}
 
+  aframe-environment-component@1.5.0: {}
+
+  aframe-look-at-component@1.0.0: {}
+
   aframe-react@4.4.0: {}
+
+  aframe-troika-text@0.14.0(aframe@1.7.1)(three@0.176.0):
+    dependencies:
+      aframe: 1.7.1
+      troika-three-text: 0.52.4(three@0.176.0)
+    transitivePeerDependencies:
+      - three
 
   aframe@1.7.1:
     dependencies:
