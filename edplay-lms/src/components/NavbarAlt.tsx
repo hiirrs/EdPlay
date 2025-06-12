@@ -43,6 +43,9 @@ export default function Navbar() {
               <Link href="#" className="font-medium hover:text-gray-200">
                 Ujian
               </Link>
+              <Link href="/vr" className="font-medium hover:text-yellow-300">
+                VR
+              </Link>
             </div>
 
             {/* Mobile navigation */}
@@ -79,6 +82,13 @@ export default function Navbar() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Ujian
+                  </Link>
+                  <Link
+                    href="/vr"
+                    className="font-medium text-xl hover:text-yellow-300"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    VR
                   </Link>
                 </div>
               </div>
