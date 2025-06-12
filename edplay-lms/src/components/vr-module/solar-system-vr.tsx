@@ -8,7 +8,6 @@ import { Entity, Scene } from 'aframe-react';
 import 'aframe-troika-text';
 import 'aframe-environment-component';
 
-// Move solarSystemData here or pass it as a prop if it's dynamic from the page
 const solarSystemData = [
   {
     id: 'sun',
@@ -130,7 +129,6 @@ const solarSystemData = [
 ];
 
 export default function SolarSystemVR() {
-  // Logic to derive data for rendering
   const sunData = solarSystemData.find((b) => b.id === 'sun');
   const planetsOrbitingSun = solarSystemData.filter(
     (b) => b.type === 'planet' && b.orbits === 'sun',
@@ -141,7 +139,7 @@ export default function SolarSystemVR() {
   return (
     <Scene environment="preset: starry; lightPosition: 0 -1000 0">
       {/* Camera + Cursor */}
-      <Entity position="0 1.6 15">
+      <Entity position="0 10 80">
         <Entity camera look-controls wasd-controls-enabled="true">
           <Entity
             cursor="fuse: false; rayOrigin: mouse"
@@ -152,10 +150,9 @@ export default function SolarSystemVR() {
         </Entity>
       </Entity>
       {/* Lighting */}
-      <Entity light="type: ambient; color: #FFF; intensity: 1.0" />{' '}
-      {/* Restored to your boosted lighting for testing */}
-      {/* <Entity light="type: directional; intensity: 0.5; color: #FFF" position="1 1 0" /> */}
-      {/* <Entity light="type: hemisphere; color: #DDD; groundColor: #333; intensity: 1.0" /> */}
+      <Entity light="type: ambient; color: #FFF; intensity: 2" />
+      <Entity light="type: hemisphere; color: #ccc; groundColor: #222; intensity: 1.2" />
+
       {/* Assets */}
       <Entity primitive="a-assets">
         {solarSystemData.map(({ id }) => (
@@ -167,6 +164,7 @@ export default function SolarSystemVR() {
           />
         ))}
       </Entity>
+
       {/* Sun */}
       {sunData && (
         <Entity position={sunData?.absolutePos?.join(' ') ?? '0 0 0'}>
@@ -174,11 +172,7 @@ export default function SolarSystemVR() {
             gltf-model={`#${sunData.id}`}
             scale={`${sunData.scale} ${sunData.scale} ${sunData.scale}`}
             animation={`property: rotation; to: 0 360 0; loop: true; dur: ${sunData.selfRotDur}; easing: linear;`}
-            material={
-              sunData.emissive
-                ? 'emissive: yellow; emissiveIntensity: 2.5'
-                : 'shader: standard; color: #555'
-            }
+            material="emissive: yellow; emissiveIntensity: 2.5"
           />
           {sunData.name && (
             <Entity
@@ -193,6 +187,7 @@ export default function SolarSystemVR() {
           )}
         </Entity>
       )}
+
       {/* Planets orbiting Sun */}
       {planetsOrbitingSun.map((planet) => {
         const moonForThisPlanet = moonsData.find((m) => m.orbits === planet.id);
@@ -211,6 +206,7 @@ export default function SolarSystemVR() {
               <Entity
                 gltf-model={`#${planet.id}`}
                 scale={`${planet.scale} ${planet.scale} ${planet.scale}`}
+                material="emissive: white; emissiveIntensity: 0.6"
               />
               {planet.name && (
                 <Entity
@@ -235,6 +231,7 @@ export default function SolarSystemVR() {
                     <Entity
                       gltf-model={`#${moonForThisPlanet.id}`}
                       scale={`${moonForThisPlanet.scale} ${moonForThisPlanet.scale} ${moonForThisPlanet.scale}`}
+                      material="emissive: white; emissiveIntensity: 0.6"
                     />
                     {moonForThisPlanet.name && (
                       <Entity
@@ -259,6 +256,7 @@ export default function SolarSystemVR() {
                       ? ringForThisPlanet.modelRotation.join(' ')
                       : '0 0 0'
                   }
+                  material="emissive: white; emissiveIntensity: 0.4"
                 />
               )}
             </Entity>

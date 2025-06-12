@@ -1,187 +1,147 @@
-// app/solar-system/page.tsx (Next.js 13+ with App Router)
 'use client';
 
+import React from 'react';
 import 'aframe';
 import 'aframe-look-at-component';
 import { Entity, Scene } from 'aframe-react';
-import 'aframe-troika-text';
+import 'aframe-troika-text'; // Corrected from a-toika-text
 import 'aframe-environment-component';
 
-const planets = [
-  { id: 'sun', name: 'Sun', position: [0, 1.6, -5], scale: 1.2, dur: 15000 },
-  { id: 'mercury', name: 'Mercury', orbitRadius: 2.5, scale: 0.3, dur: 4000 },
-  { id: 'venus', name: 'Venus', orbitRadius: 4, scale: 0.4, dur: 6000 },
-  { id: 'earth', name: 'Earth', orbitRadius: 6, scale: 0.5, dur: 10000 },
+// Shape data
+const shapes = [
   {
-    id: 'moon',
-    name: 'Moon',
-    orbitRadius: 1,
-    parent: 'earth',
-    scale: 0.15,
-    dur: 3000,
+    type: 'box',
+    props: { color: '#4CC3D9', width: 2, height: 2, depth: 2 },
+    formula: 'V = a³',
+    position: { x: -3, y: 1, z: 0 },
   },
-  { id: 'mars', name: 'Mars', orbitRadius: 8, scale: 0.4, dur: 12000 },
-  { id: 'jupiter', name: 'Jupiter', orbitRadius: 11, scale: 0.9, dur: 20000 },
-  { id: 'saturn', name: 'Saturn', orbitRadius: 14, scale: 0.8, dur: 25000 },
   {
-    id: 'saturn-ring',
-    name: 'Saturn Ring',
-    orbitRadius: 0,
-    parent: 'saturn',
-    scale: 0.9,
-    dur: 0,
-    isRing: true,
+    type: 'sphere',
+    props: { color: '#EF2D5E', radius: 1 },
+    formula: 'V = 4/3πr³',
+    position: { x: -1, y: 1, z: 0 },
   },
-  { id: 'uranus', name: 'Uranus', orbitRadius: 17, scale: 0.7, dur: 30000 },
-  { id: 'neptune', name: 'Neptune', orbitRadius: 20, scale: 0.7, dur: 35000 },
+  {
+    type: 'cylinder',
+    props: { color: '#FFC65D', radius: 1, height: 2 },
+    formula: 'V = πr²h',
+    position: { x: 1, y: 1, z: 0 },
+  },
+  {
+    type: 'cone',
+    props: { color: '#7BC8A4', radiusTop: 0, radiusBottom: 1, height: 2 },
+    formula: 'V = 1/3πr²h',
+    position: { x: 3, y: 1, z: 0 },
+  },
 ];
 
-export default function SolarSystemPage() {
+// Utility to lighten color
+function lightenColor(hex: string, percent: number) {
+  hex = hex.replace(/^#/, '');
+  let r = parseInt(hex.substring(0, 2), 16);
+  let g = parseInt(hex.substring(2, 4), 16);
+  let b = parseInt(hex.substring(4, 6), 16);
+  r = Math.min(255, Math.floor(r + (255 - r) * percent));
+  g = Math.min(255, Math.floor(g + (255 - g) * percent));
+  b = Math.min(255, Math.floor(b + (255 - b) * percent));
+  return `#${r.toString(16).padStart(2, '0')}${g
+    .toString(16)
+    .padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+export default function GeometryVRScene() {
   return (
-    <Scene environment="preset: starry">
+    <Scene environment="preset: forest; groundColor: #43EA5B; groundTexture: none; dressing: trees; dressingColor: #00FF6A">
+      {' '}
+      {/* Retained your environment colors */}
       {/* Camera + Cursor */}
-      <Entity position="0 1.6 10">
-        <Entity camera look-controls wasd-controls-enabled="true">
+      <Entity position="0 1 4">
+        <Entity primitive="a-camera" raycaster="objects: .interact">
           <Entity
-            cursor="fuse: false; rayOrigin: mouse"
+            primitive="a-cursor"
+            geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+            material="color: #EF2D5E; shader: flat"
             position="0 0 -1"
-            geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02"
-            material="color: white; shader: flat"
           />
         </Entity>
       </Entity>
-
       {/* Lighting */}
-      <Entity light="type: ambient; color: #999" />
-      <Entity light="type: directional; intensity: 0.5" position="1 1 0" />
-
-      {/* Assets */}
-      <a-assets>
-        {planets.map(({ id }) => (
-          <a-asset-item key={id} id={id} src={`/models/${id}.glb`} />
-        ))}
-      </a-assets>
-
-      {/* Sun */}
-      <Entity>
-        <Entity
-          gltf-model="#sun"
-          position="0 1.6 -5"
-          scale="1.2 1.2 1.2"
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 15000"
-          material="emissive: yellow; emissiveIntensity: 1.5"
-        />
-        <Entity
-          primitive="a-troika-text"
-          value="Sun"
-          align="center"
-          color="white"
-          font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-          position="0 2.8 -5"
-          look-at="[camera]"
-        />
-      </Entity>
-
-      {/* Planets and their moons or rings */}
-      {planets
-        .filter(
-          ({ id }) => id !== 'sun' && !['moon', 'saturn-ring'].includes(id),
-        )
-        .map(({ id, name, orbitRadius, scale, dur }, idx) => (
-          <Entity
-            key={idx}
-            id={`${id}-pivot`}
-            position="0 1.6 -5"
-            animation={
-              dur
-                ? `property: rotation; to: 0 360 0; loop: true; dur: ${dur}`
-                : undefined
-            }
-          >
-            {/* Orbit Trail */}
-            <Entity
-              geometry={`primitive: torus; radius: ${orbitRadius}; radiusTubular: 0.005; segmentsRadial: 36; segmentsTubular: 100`}
-              material="color: white; opacity: 0.2; transparent: true"
-              rotation="90 0 0"
-            />
-
-            {/* Planet */}
-            <Entity
-              gltf-model={`#${id}`}
-              position={`${orbitRadius} 0 0`}
-              scale={`${scale} ${scale} ${scale}`}
-              animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"
-            />
-            <Entity
-              primitive="a-troika-text"
-              value={name}
-              align="center"
-              color="white"
-              font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-              position={`${orbitRadius} 1.2 0`}
-              look-at="[camera]"
-            />
-
-            {/* Child entities like moon or ring */}
-            {planets
-              .filter((p) => p.parent === id)
-              .map(
-                (
-                  {
-                    id: childId,
-                    name: childName,
-                    orbitRadius: childOrbit,
-                    scale: childScale,
-                    dur: childDur,
-                    isRing,
-                  },
-                  cidx,
-                ) => (
-                  <Entity
-                    key={cidx}
-                    id={`${childId}-pivot`}
-                    position={`${orbitRadius} 0 0`}
-                    animation={
-                      childDur
-                        ? `property: rotation; to: 0 360 0; loop: true; dur: ${childDur}`
-                        : undefined
-                    }
-                  >
-                    {!isRing && (
-                      <Entity
-                        geometry={`primitive: torus; radius: ${childOrbit}; radiusTubular: 0.003; segmentsRadial: 36; segmentsTubular: 100`}
-                        material="color: white; opacity: 0.2; transparent: true"
-                        rotation="90 0 0"
-                      />
-                    )}
-                    <Entity
-                      gltf-model={`#${childId}`}
-                      position={`${childOrbit} 0 0`}
-                      scale={`${childScale} ${childScale} ${childScale}`}
-                    />
-                    {!isRing && (
-                      <Entity
-                        primitive="a-troika-text"
-                        value={childName}
-                        align="center"
-                        color="white"
-                        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                        position={`${childOrbit} 1.2 0`}
-                        look-at="[camera]"
-                      />
-                    )}
-                  </Entity>
-                ),
-              )}
-          </Entity>
-        ))}
-
-      {/* Skybox */}
+      <Entity light="type: ambient; color: #fff; intensity: 0.4" />
       <Entity
-        geometry="primitive: sphere; radius: 1000"
-        material="shader: flat; color: #000"
-        scale="-1 1 1"
+        light="type: directional; color: #fff; intensity: 0.15"
+        position="1 3 2"
       />
+      <Entity
+        light="type: point; color: #fff; intensity: 0.1; distance: 20"
+        position="0 5 0"
+      />
+      {/* Sun (or general light source representation) */}
+      <Entity
+        primitive="a-sphere"
+        color="#FFF176"
+        radius="1"
+        position="0 10 -10"
+        material="emissive: #FFF176; emissiveIntensity: 0.6"
+      />
+      {/* Shapes */}
+      {shapes.map(({ type, props, formula, position }, idx) => {
+        const delay = Math.random() * 1000;
+        const hoverColor = lightenColor(props.color, 0.4);
+
+        return (
+          <Entity key={idx}>
+            {/* Floating container */}
+            <Entity
+              position={`${position.x} ${position.y} ${position.z}`}
+              animation={`
+                property: position;
+                dir: alternate;
+                dur: 1000;
+                easing: easeInOutSine;
+                loop: true;
+                delay: ${delay};
+                to: ${position.x} ${position.y + 0.3} ${position.z}
+              `}
+            >
+              {/* Shape geometry */}
+              <Entity
+                className="interact" // Use className for React components
+                primitive={`a-${type}`}
+                {...props}
+                events={{
+                  mouseenter: (
+                    e: any, // Added type for event
+                  ) => e.target.setAttribute('material', 'color', hoverColor),
+                  mouseleave: (
+                    e: any, // Added type for event
+                  ) => e.target.setAttribute('material', 'color', props.color),
+                }}
+              />
+            </Entity>
+
+            {/* Floating formula text */}
+            <Entity
+              primitive="a-troika-text" // Corrected primitive name
+              value={formula}
+              color="#000"
+              align="center"
+              width="4"
+              font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+              position={`${position.x} ${position.y + 1.3} ${position.z}`}
+              look-at="[camera]"
+              animation={`
+                property: position;
+                dir: alternate;
+                dur: 1000;
+                easing: easeInOutSine;
+                loop: true;
+                delay: ${delay};
+                to: ${position.x} ${position.y + 1.7} ${position.z}
+              `}
+            />
+          </Entity>
+        );
+      })}
     </Scene>
   );
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 
 const GeometryVRScene = dynamic(
-  () => import('../../components/vr-module/geometry-vr'), // Adjusted import path to relative path
+  () => import('../../components/vr-module/geometry-vr'), // Adjusted path to match project structure
   {
     ssr: false,
     loading: () => (
