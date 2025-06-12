@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-// A-Frame and related imports
 import 'aframe';
 import 'aframe-look-at-component';
 import { Entity, Scene } from 'aframe-react';
@@ -13,8 +12,8 @@ const solarSystemData = [
     id: 'sun',
     name: 'Sun',
     type: 'star',
-    absolutePos: [0, 1.6, -5],
-    scale: 1.2,
+    absolutePos: [0, 3, -5], // Raised from 1.6 to 3
+    scale: 1,
     selfRotDur: 25000,
     emissive: true,
     textYOffset: 1.8,
@@ -137,24 +136,35 @@ export default function SolarSystemVR() {
   const ringsData = solarSystemData.filter((b) => b.type === 'ring');
 
   return (
-    <Scene environment="preset: starry; lightPosition: 0 -1000 0">
+    <Scene environment="preset: starry; ground: none; lightPosition: 0 -1000 0">
       {/* Camera + Cursor */}
-      <Entity position="0 10 80">
-        <Entity camera look-controls wasd-controls-enabled="true">
+      <Entity position="0 0 20">
+        <Entity
+          primitive="a-camera"
+          raycaster="objects: .interact"
+          look-controls
+          wasd-controls-enabled="true"
+        >
           <Entity
-            cursor="fuse: false; rayOrigin: mouse"
+            primitive="a-cursor"
+            geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+            material="color: #EF2D5E; shader: flat"
             position="0 0 -1"
-            geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02"
-            material="color: white; shader: flat"
           />
         </Entity>
       </Entity>
+
       {/* Lighting */}
       <Entity light="type: ambient; color: #FFF; intensity: 2" />
       <Entity light="type: hemisphere; color: #ccc; groundColor: #222; intensity: 1.2" />
 
       {/* Assets */}
       <Entity primitive="a-assets">
+        <img
+          id="skyGradient"
+          src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/sechelt.jpg"
+          crossOrigin="anonymous"
+        />
         {solarSystemData.map(({ id }) => (
           <Entity
             primitive="a-asset-item"
@@ -165,16 +175,35 @@ export default function SolarSystemVR() {
         ))}
       </Entity>
 
-      {/* Sun */}
-      {sunData && (
-        <Entity position={sunData?.absolutePos?.join(' ') ?? '0 0 0'}>
-          <Entity
-            gltf-model={`#${sunData.id}`}
-            scale={`${sunData.scale} ${sunData.scale} ${sunData.scale}`}
-            animation={`property: rotation; to: 0 360 0; loop: true; dur: ${sunData.selfRotDur}; easing: linear;`}
-            material="emissive: yellow; emissiveIntensity: 2.5"
-          />
-          {sunData.name && (
+      {/* Sky background */}
+      <Entity primitive="a-sky" src="#skyGradient" rotation="0 -130 0" />
+
+      {/* Reflective black floor */}
+      <Entity
+        geometry="primitive: plane; width: 500; height: 500"
+        rotation="-90 0 0"
+        position="0 -10 0"
+        material="color: black; metalness: 1; roughness: 0; opacity: 0.98; side: double"
+      />
+
+      {/* Inverted sky for reflection effect */}
+      <Entity
+        primitive="a-sky"
+        src="#skyGradient"
+        rotation="0 -130 0"
+        position="0 -0.01 0"
+        scale="1 -1 1"
+      />
+      <Entity position="0 -5 0">
+        {/* Sun */}
+        {sunData && (
+          <Entity position={sunData?.absolutePos?.join(' ') ?? '0 0 0'}>
+            <Entity
+              gltf-model={`#${sunData.id}`}
+              scale={`${sunData.scale} ${sunData.scale} ${sunData.scale}`}
+              animation={`property: rotation; to: 0 360 0; loop: true; dur: ${sunData.selfRotDur}; easing: linear`}
+              material="emissive: yellow; emissiveIntensity: 2.5"
+            />
             <Entity
               primitive="a-troika-text"
               value={sunData.name}
@@ -184,31 +213,34 @@ export default function SolarSystemVR() {
               position={`0 ${sunData.textYOffset} 0`}
               look-at="[camera]"
             />
-          )}
-        </Entity>
-      )}
+          </Entity>
+        )}
 
-      {/* Planets orbiting Sun */}
-      {planetsOrbitingSun.map((planet) => {
-        const moonForThisPlanet = moonsData.find((m) => m.orbits === planet.id);
-        const ringForThisPlanet = ringsData.find((r) => r.orbits === planet.id);
-
-        return (
-          <Entity
-            key={planet.id + '-orbit'}
-            position={sunData?.absolutePos?.join(' ') ?? '0 1.6 -5'}
-            animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.orbitAnimDur}; easing: linear;`}
-          >
+        {/* Planets + Moons + Rings */}
+        {planetsOrbitingSun.map((planet) => {
+          const moon = moonsData.find((m) => m.orbits === planet.id);
+          const ring = ringsData.find((r) => r.orbits === planet.id);
+          return (
             <Entity
-              position={`${planet.orbitRadius} 0 0`}
-              animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.selfRotDur}; easing: linear;`}
+              key={planet.id + '-orbit'}
+              position={sunData?.absolutePos?.join(' ') ?? '0 0 0'}
+              animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.orbitAnimDur}; easing: linear`}
             >
+              {/* Orbit Ring */}
               <Entity
-                gltf-model={`#${planet.id}`}
-                scale={`${planet.scale} ${planet.scale} ${planet.scale}`}
-                material="emissive: white; emissiveIntensity: 0.6"
+                geometry={`primitive: torus; radius: ${planet.orbitRadius}; radiusTubular: 0.01; segmentsTubular: 100`}
+                rotation="-90 0 0"
+                material="color: #888; opacity: 0.3; transparent: true"
               />
-              {planet.name && (
+              <Entity
+                position={`${planet.orbitRadius} 0 0`}
+                animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.selfRotDur}; easing: linear`}
+              >
+                <Entity
+                  gltf-model={`#${planet.id}`}
+                  scale={`${planet.scale} ${planet.scale} ${planet.scale}`}
+                  material="emissive: white; emissiveIntensity: 0.6"
+                />
                 <Entity
                   primitive="a-troika-text"
                   value={planet.name}
@@ -218,51 +250,46 @@ export default function SolarSystemVR() {
                   position={`0 ${planet.textYOffset} 0`}
                   look-at="[camera]"
                 />
-              )}
-              {moonForThisPlanet && (
-                <Entity
-                  key={moonForThisPlanet.id + '-orbit'}
-                  animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moonForThisPlanet.orbitAnimDur}; easing: linear;`}
-                >
+                {moon && (
                   <Entity
-                    position={`${moonForThisPlanet.orbitRadius} 0 0`}
-                    animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moonForThisPlanet.selfRotDur}; easing: linear;`}
+                    animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moon.orbitAnimDur}; easing: linear`}
                   >
                     <Entity
-                      gltf-model={`#${moonForThisPlanet.id}`}
-                      scale={`${moonForThisPlanet.scale} ${moonForThisPlanet.scale} ${moonForThisPlanet.scale}`}
-                      material="emissive: white; emissiveIntensity: 0.6"
-                    />
-                    {moonForThisPlanet.name && (
+                      position={`${moon.orbitRadius} 0 0`}
+                      animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moon.selfRotDur}; easing: linear`}
+                    >
                       <Entity
-                        primitive="a-troika-text"
-                        value={moonForThisPlanet.name}
-                        align="center"
-                        color="white"
-                        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                        position={`0 ${moonForThisPlanet.textYOffset} 0`}
-                        look-at="[camera]"
+                        gltf-model={`#${moon.id}`}
+                        scale={`${moon.scale} ${moon.scale} ${moon.scale}`}
+                        material="emissive: white; emissiveIntensity: 0.6"
                       />
-                    )}
+                      {moon.name && (
+                        <Entity
+                          primitive="a-troika-text"
+                          value={moon.name}
+                          align="center"
+                          color="white"
+                          font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                          position={`0 ${moon.textYOffset} 0`}
+                          look-at="[camera]"
+                        />
+                      )}
+                    </Entity>
                   </Entity>
-                </Entity>
-              )}
-              {ringForThisPlanet && (
-                <Entity
-                  gltf-model={`#${ringForThisPlanet.id}`}
-                  scale={`${ringForThisPlanet.scale} ${ringForThisPlanet.scale} ${ringForThisPlanet.scale}`}
-                  rotation={
-                    ringForThisPlanet.modelRotation
-                      ? ringForThisPlanet.modelRotation.join(' ')
-                      : '0 0 0'
-                  }
-                  material="emissive: white; emissiveIntensity: 0.4"
-                />
-              )}
+                )}
+                {ring && (
+                  <Entity
+                    gltf-model={`#${ring.id}`}
+                    scale={`${ring.scale} ${ring.scale} ${ring.scale}`}
+                    rotation={ring.modelRotation?.join(' ') ?? '0 0 0'}
+                    material="emissive: white; emissiveIntensity: 0.4"
+                  />
+                )}
+              </Entity>
             </Entity>
-          </Entity>
-        );
-      })}
+          );
+        })}
+      </Entity>
     </Scene>
   );
 }
