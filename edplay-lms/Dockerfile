@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 3000
 
 # Jalankan aplikasi
-CMD ["pnpm", "dev"]
+CMD ["sh", "-c", "pnpm migrate && pnpm db-seed && pnpm start"]
