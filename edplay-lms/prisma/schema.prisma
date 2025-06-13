@@ -75,7 +75,7 @@ model Course {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   isActive       Boolean        @default(true)
-  enrollToken    String         @unique @default(dbgenerated("gen_random_uuid()"))
+  enrollToken    String         @unique 
 
   enrollments Enrollment[]
   assignments Assignment[]
@@ -159,11 +159,13 @@ model ModuleContent {
 
 model Quiz {
   id                Int        @id @default(autoincrement())
-  courseId          Int
-  course            Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title             String
   description       String?
+  courseId          Int
+  course            Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   allowResubmission Boolean    @default(false)
+  durationMinutes   Int?
+  deadline          DateTime?
   questions         Question[]
   createdAt         DateTime   @default(now())
 }
@@ -177,7 +179,8 @@ model Question {
   imageUrl     String?
   createdAt    DateTime     @default(now())
 
-  answers Answer[]
+  answers       Answer[]
+  answerOptions AnswerOption[]
 }
 
 model Answer {
@@ -188,6 +191,14 @@ model Answer {
   student     User     @relation(fields: [studentId], references: [user_id], onDelete: Cascade)
   answerText  String
   submittedAt DateTime @default(now())
+}
+
+model AnswerOption {
+  id         Int      @id @default(autoincrement())
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean
 }
 
 model GameLiteracy {
@@ -232,6 +243,7 @@ enum ContentType {
 
 enum QuestionType {
   multiple_choice
+  checkbox_multiple
   short_answer
   true_false
 }

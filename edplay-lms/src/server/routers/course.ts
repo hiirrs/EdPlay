@@ -25,20 +25,82 @@ function isCustomUpload(imageUrl: string | undefined) {
   return imageUrl?.startsWith('/uploads/');
 }
 
+// Improved input validation schema for course update
+const courseUpdateSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().optional(),
+  educationLevel: z.enum(['SD', 'SMP', 'SMA']),
+  grade: z.coerce.number(), // Use coerce to handle string inputs
+  isActive: z.boolean(),
+  imageUrl: z.string().optional(),
+});
+
+// Improved input validation schema for course creation
+const courseCreateSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  educationLevel: z.enum(['SD', 'SMP', 'SMA']),
+  grade: z.coerce.number(), // Use coerce to handle string inputs
+  imageUrl: z.string().optional(),
+  schoolId: z.number().optional(),
+});
+
 export const courseRouter = router({
   getByUserRole: protectedProcedure.query(async ({ ctx }) => {
     const { user } = ctx;
 
+    const includeExtras = {
+      teacher: {
+        select: { user_id: true, fullname: true },
+      },
+      assignments: {
+        orderBy: { dueDate: 'desc' as const },
+        take: 1,
+        select: { dueDate: true },
+      },
+      modules: {
+        orderBy: { createdAt: 'desc' as const },
+        take: 1,
+        select: { id: true },
+      },
+      quizzes: {
+        where: { deadline: { gte: new Date() } },
+        take: 1,
+        select: { id: true },
+      },
+    };
+
+    const mapCourse = (course: any) => {
+      const assignment = course.assignments?.[0] ?? null;
+      const deadline = assignment?.dueDate ? new Date(assignment.dueDate) : null;
+
+      return {
+        id: course.id,
+        subject: course.name,
+        description: course.description,
+        educationLevel: course.educationLevel || 'SD', // Provide default value if undefined
+        grade: typeof course.grade === 'number' ? course.grade : 1, // Ensure grade is a number
+        class: `Kelas ${course.grade}`,
+        token: course.enrollToken || '',
+        imageUrl: course.imageUrl,
+        teacher: course.teacher?.fullname ?? 'Tanpa Guru',
+        isActive: course.isActive,
+        hasNewMaterial: Array.isArray(course.modules) && course.modules.length > 0,
+        hasExam: Array.isArray(course.quizzes) && course.quizzes.length > 0,
+        taskDate: deadline?.toLocaleDateString('id-ID') ?? '',
+        taskTime: deadline?.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) ?? '',
+        isEditable: user.role === 'teacher' || user.role === 'admin',
+      };
+    };
+
     if (user.role === 'teacher') {
-      return prisma.course.findMany({
+      const courses = await prisma.course.findMany({
         where: { teacherId: user.userId },
         orderBy: { createdAt: 'desc' },
-        include: {
-          teacher: {
-            select: { user_id: true, fullname: true },
-          },
-        },
+        include: includeExtras,
       });
+      return courses.map(mapCourse);
     }
 
     if (user.role === 'student') {
@@ -46,31 +108,21 @@ export const courseRouter = router({
         where: { userId: user.userId },
         include: {
           course: {
-            include: {
-              teacher: { select: { user_id: true, fullname: true } },
-            },
+            include: includeExtras,
           },
         },
       });
 
-      return enrollments.map((e) => ({
-        ...e.course,
-        teacher: e.course.teacher,
-        id: e.course.id, // ⚠️ pastikan id tersedia
-        name: e.course.name,
-        imageUrl: e.course.imageUrl,
-      }));
+      return enrollments.map((e) => mapCourse(e.course));
     }
 
     // Admin
-    return prisma.course.findMany({
-      include: {
-        teacher: {
-          select: { user_id: true, fullname: true },
-        },
-      },
+    const courses = await prisma.course.findMany({
+      include: includeExtras,
     });
+    return courses.map(mapCourse);
   }),
+
 
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
@@ -88,23 +140,19 @@ export const courseRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.object({
-      name: z.string(),
-      description: z.string().optional(),
-      educationLevel: z.enum(['SD', 'SMP', 'SMA']),
-      grade: z.number(),
-      imageUrl: z.string().optional(),
-      schoolId: z.number().optional(),
-    }))
+    .input(courseCreateSchema)
     .mutation(({ input, ctx }) => {
+      // Ensure grade is a number
+      const grade = typeof input.grade === 'number' ? input.grade : 1;
+      
       return prisma.course.create({
         data: {
           name: input.name,
           description: input.description,
           teacherId: ctx.user.userId,
           educationLevel: input.educationLevel,
-          grade: input.grade,
-          imageUrl: input.imageUrl || defaultImagesByGrade[input.grade],
+          grade: grade,
+          imageUrl: input.imageUrl || defaultImagesByGrade[grade],
           schoolId: input.schoolId || ctx.user.schoolId,
           enrollToken: nanoid(5),
           isActive: true,
@@ -113,15 +161,7 @@ export const courseRouter = router({
     }),
 
   update: protectedProcedure
-    .input(z.object({
-      id: z.number(),
-      name: z.string(),
-      description: z.string().optional(),
-      educationLevel: z.enum(['SD', 'SMP', 'SMA']),
-      grade: z.number(),
-      isActive: z.boolean(),
-      imageUrl: z.string().optional(),
-    }))
+    .input(courseUpdateSchema)
     .mutation(async ({ input }) => {
       const course = await prisma.course.findUnique({ where: { id: input.id } });
       if (!course) {
@@ -135,15 +175,18 @@ export const courseRouter = router({
         }
       }
 
+      // Ensure grade is a number
+      const grade = typeof input.grade === 'number' ? input.grade : 1;
+
       return prisma.course.update({
         where: { id: input.id },
         data: {
           name: input.name,
           description: input.description,
           educationLevel: input.educationLevel,
-          grade: input.grade,
+          grade: grade,
           isActive: input.isActive,
-          imageUrl: input.imageUrl ?? defaultImagesByGrade[input.grade],
+          imageUrl: input.imageUrl ?? defaultImagesByGrade[grade],
         },
       });
     }),

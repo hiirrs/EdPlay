@@ -6,6 +6,7 @@ import TabNavigation from './TabNav';
 import ContentView from './ContentView';
 import ContentList from './ContentList';
 import AnswerView from './AnswerView';
+import QuizView from './QuizView';
 import { trpc } from '~/utils/trpc';
 import toast from 'react-hot-toast';
 import { Menu, X } from 'lucide-react';
@@ -44,6 +45,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null,
   );
+  const [quizStarted, setQuizStarted] = useState(false);
 
   const { data: modules = [] } = trpc.module.getByCourseId.useQuery({
     courseId,
@@ -88,8 +90,6 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
           !!activeId,
       },
     );
-  console.log('selectedStudentId:', selectedStudentId);
-  console.log('studentSubmission:', studentSubmission);
 
   const studentItems: SubmissionStudentItem[] = submissions.map((s) => ({
     id: s.id,
@@ -97,6 +97,13 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     grade: s.grade ?? 0,
     status: s.status === 'Sudah' ? 'Sudah' : 'Belum',
   }));
+
+  const { data: quizQuestions = [] } = trpc.quiz.getQuestions.useQuery(
+    { quizId: activeId ?? 0 },
+    { enabled: activeTab === 'Ujian' && !!activeId },
+  );
+
+  const submitQuiz = trpc.quiz.submitAnswers.useMutation();
 
   const isTeacher = currentUser?.role === 'teacher';
   const isAdmin = currentUser?.role === 'admin';
@@ -106,7 +113,8 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
   const deleteModule = trpc.module.delete.useMutation();
   const deleteAssignment = trpc.assignment.delete.useMutation();
   const deleteQuiz = trpc.quiz.delete.useMutation();
-  const gradeSubmission = trpc.assignmentSubmission.gradeSubmission.useMutation();
+  const gradeSubmission =
+    trpc.assignmentSubmission.gradeSubmission.useMutation();
 
   const handleDelete = async (
     id: number,
@@ -202,6 +210,29 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
     setSelectedStudentId(id);
   };
 
+  const handleSubmitQuizAnswers = async (
+    answers: { questionId: number; answer: string | number[] | null }[],
+  ) => {
+    if (!activeId) return;
+
+    try {
+      const cleanedAnswers = answers.map((ans) => ({
+        questionId: ans.questionId,
+        answer: ans.answer ?? '',
+      }));
+
+      await submitQuiz.mutateAsync({
+        quizId: activeId,
+        answers: cleanedAnswers,
+      });
+
+      toast.success('Jawaban berhasil dikumpulkan!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal mengumpulkan jawaban.');
+    }
+  };
+
   const renderSidebarContent = (onSelectItem: (id: number) => void) => {
     const commonProps = {
       activeId,
@@ -261,6 +292,7 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
       return (
         <ContentList
           {...commonProps}
+          onSelect={handleSelectItem}
           items={quizzes}
           renderTitle={(q) => q.title}
           typeLabel="Ujian"
@@ -291,7 +323,10 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
             submission={studentSubmission}
             assignment={assignment}
             onSubmitScore={async (score) => {
-              await gradeSubmission.mutateAsync({ submissionId: studentSubmission.id, score });
+              await gradeSubmission.mutateAsync({
+                submissionId: studentSubmission.id,
+                score,
+              });
               toast.success('Nilai berhasil disimpan');
             }}
           />
@@ -399,12 +434,58 @@ export default function LearningPlatform({ courseId }: LearningPlatformProps) {
 
     if (activeTab === 'Ujian') {
       const item = activeItem as (typeof quizzes)[0];
+      if (!item) {
+        return <p className="p-4">Pilih ujian di samping.</p>;
+      }
+
+      if (!quizStarted) {
+        return (
+          <div className="bg-white p-4 rounded-md shadow-md">
+            <h1 className="text-2xl font-bold mb-2">{item.title}</h1>
+            {item.description && (
+              <p className="text-gray-700 mb-4">{item.description}</p>
+            )}
+            <ul className="text-sm text-gray-700 space-y-1 mb-4">
+              <li>
+                <strong>Jumlah Soal:</strong> {quizQuestions.length}
+              </li>
+              <li>
+                <strong>Durasi:</strong> {item.durationMinutes ?? 60} menit
+              </li>
+              <li>
+                <strong>Deadline:</strong>{' '}
+                {item.deadline
+                  ? new Date(item.deadline).toLocaleString('id-ID', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : 'Tidak ada'}
+              </li>
+            </ul>
+            <button
+              onClick={() => setQuizStarted(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            >
+              Mulai Ujian
+            </button>
+          </div>
+        );
+      }
+
       return (
-        <ContentView
-          title={item.title}
-          description={item.description || ''}
-          contents={[]}
-        />
+        <div className="bg-white p-4 rounded-md shadow-md">
+          {quizQuestions.length > 0 ? (
+            <QuizView
+              questions={quizQuestions}
+              onSubmit={handleSubmitQuizAnswers}
+            />
+          ) : (
+            <p>Belum ada konten.</p>
+          )}
+        </div>
       );
     }
 

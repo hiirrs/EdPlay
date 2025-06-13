@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { serialize } from 'cookie';
+// import { serialize } from 'cookie';
 
 
 export const createJWT = (payload: object) =>
@@ -11,13 +11,14 @@ export const verifyJWT = (token: string) => {
 };
 
 export const createCookie = (token: string) => {
-  return serialize('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 1 * 60 * 60,
-    sameSite: 'lax',
-  });
+  // return serialize('token', token, {
+  //   httpOnly: true,
+  //   secure: process.env.NODE_ENV === 'production',
+  //   path: '/course',
+  //   maxAge: 24 * 60 * 60,
+  //   sameSite: 'lax',
+  // });
+  return `token=${token}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`; 
 };
 
 export const getUserFromToken = (token?: string) => {

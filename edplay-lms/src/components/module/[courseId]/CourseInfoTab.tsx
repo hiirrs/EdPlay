@@ -208,7 +208,7 @@ export default function CourseInfoTab({
             onChange={(e) => setNewPost(e.target.value)}
             placeholder="Tulis informasi untuk siswa..."
           />
-          <Button onClick={handlePost}>Kirim</Button>
+          <Button disabled={!newPost.trim()} onClick={handlePost}>Kirim</Button>
         </div>
         <h3 className="font-semibold text-lg mb-2">Post Informasi</h3>
         {posts.map((post: Post) => (

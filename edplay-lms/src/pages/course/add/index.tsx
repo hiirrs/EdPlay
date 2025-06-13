@@ -27,7 +27,7 @@ export default function AddCoursePage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload-course-image', {
+      const res = await fetch('/api/upload-course-bg', {
         method: 'POST',
         body: formData,
       });
@@ -61,7 +61,7 @@ export default function AddCoursePage() {
         imageUrl,
       });
       toast.success('Kelas berhasil dibuat');
-      router.push('/');
+      router.push('/course');
     } catch (err) {
       console.error(err);
       toast.error('Gagal membuat kelas');
