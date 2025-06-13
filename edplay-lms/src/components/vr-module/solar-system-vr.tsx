@@ -23,7 +23,7 @@ const solarSystemData = [
     name: 'Mercury',
     type: 'planet',
     orbits: 'sun',
-    orbitRadius: 4,
+    orbitRadius: 6,
     orbitAnimDur: 8000,
     scale: 0.3,
     selfRotDur: 10000,
@@ -221,72 +221,90 @@ export default function SolarSystemVR() {
           const moon = moonsData.find((m) => m.orbits === planet.id);
           const ring = ringsData.find((r) => r.orbits === planet.id);
           return (
-            <Entity
-              key={planet.id + '-orbit'}
-              position={sunData?.absolutePos?.join(' ') ?? '0 0 0'}
-              animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.orbitAnimDur}; easing: linear`}
-            >
-              {/* Orbit Ring */}
+            <>
+              {/* Static Orbit Label — stays in world space */}
               <Entity
-                geometry={`primitive: torus; radius: ${planet.orbitRadius}; radiusTubular: 0.01; segmentsTubular: 100`}
-                rotation="-90 0 0"
-                material="color: #888; opacity: 0.3; transparent: true"
-              />
-              <Entity
-                position={`${planet.orbitRadius} 0 0`}
-                animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.selfRotDur}; easing: linear`}
+                key={planet.id + '-orbit-label'}
+                position={
+                  sunData?.absolutePos
+                    ? `${sunData.absolutePos[0]} 0.5 ${sunData.absolutePos[2] - planet.orbitRadius}`
+                    : `0 0.5 ${-(planet.orbitRadius ?? 0)}`
+                }
               >
-                <Entity
-                  gltf-model={`#${planet.id}`}
-                  scale={`${planet.scale} ${planet.scale} ${planet.scale}`}
-                  material="emissive: white; emissiveIntensity: 0.6"
-                />
                 <Entity
                   primitive="a-troika-text"
                   value={planet.name}
                   align="center"
                   color="white"
                   font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                  position={`0 ${planet.textYOffset} 0`}
+                  scale="2 2 2"
                   look-at="[camera]"
                 />
-                {moon && (
+              </Entity>
+
+              {/* Planet + Orbit Ring + Moon + Ring */}
+              <Entity
+                key={planet.id + '-orbit'}
+                position={sunData?.absolutePos?.join(' ') ?? '0 0 0'}
+                animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.orbitAnimDur}; easing: linear`}
+              >
+                {/* Orbit Ring */}
+                <Entity
+                  geometry={`primitive: torus; radius: ${planet.orbitRadius}; radiusTubular: 0.01; segmentsTubular: 100`}
+                  rotation="-90 0 0"
+                  material="color: #888; opacity: 0.3; transparent: true"
+                />
+
+                {/* Planet + Moon + Ring */}
+                <Entity
+                  position={`${planet.orbitRadius} 0 0`}
+                  animation={`property: rotation; to: 0 360 0; loop: true; dur: ${planet.selfRotDur}; easing: linear`}
+                >
                   <Entity
-                    animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moon.orbitAnimDur}; easing: linear`}
-                  >
+                    gltf-model={`#${planet.id}`}
+                    scale={`${planet.scale} ${planet.scale} ${planet.scale}`}
+                    material="emissive: white; emissiveIntensity: 0.6"
+                  />
+
+                  {moon && (
                     <Entity
-                      position={`${moon.orbitRadius} 0 0`}
-                      animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moon.selfRotDur}; easing: linear`}
+                      animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moon.orbitAnimDur}; easing: linear`}
                     >
                       <Entity
-                        gltf-model={`#${moon.id}`}
-                        scale={`${moon.scale} ${moon.scale} ${moon.scale}`}
-                        material="emissive: white; emissiveIntensity: 0.6"
-                      />
-                      {moon.name && (
+                        position={`${moon.orbitRadius} 0 0`}
+                        animation={`property: rotation; to: 0 360 0; loop: true; dur: ${moon.selfRotDur}; easing: linear`}
+                      >
                         <Entity
-                          primitive="a-troika-text"
-                          value={moon.name}
-                          align="center"
-                          color="white"
-                          font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                          position={`0 ${moon.textYOffset} 0`}
-                          look-at="[camera]"
+                          gltf-model={`#${moon.id}`}
+                          scale={`${moon.scale} ${moon.scale} ${moon.scale}`}
+                          material="emissive: white; emissiveIntensity: 0.6"
                         />
-                      )}
+                        {moon.name && (
+                          <Entity
+                            primitive="a-troika-text"
+                            value={moon.name}
+                            align="center"
+                            color="white"
+                            font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                            position={`0 ${moon.textYOffset} 0`}
+                            look-at="[camera]"
+                          />
+                        )}
+                      </Entity>
                     </Entity>
-                  </Entity>
-                )}
-                {ring && (
-                  <Entity
-                    gltf-model={`#${ring.id}`}
-                    scale={`${ring.scale} ${ring.scale} ${ring.scale}`}
-                    rotation={ring.modelRotation?.join(' ') ?? '0 0 0'}
-                    material="emissive: white; emissiveIntensity: 0.4"
-                  />
-                )}
+                  )}
+
+                  {ring && (
+                    <Entity
+                      gltf-model={`#${ring.id}`}
+                      scale={`${ring.scale} ${ring.scale} ${ring.scale}`}
+                      rotation={ring.modelRotation?.join(' ') ?? '0 0 0'}
+                      material="emissive: white; emissiveIntensity: 0.4"
+                    />
+                  )}
+                </Entity>
               </Entity>
-            </Entity>
+            </>
           );
         })}
       </Entity>
