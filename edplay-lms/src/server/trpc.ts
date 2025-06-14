@@ -30,12 +30,31 @@ const t = initTRPC.context<Context>().create({
  * @see https://trpc.io/docs/v11/router
  */
 export const router = t.router;
+export const middleware = t.middleware;
 
 /**
  * Create an unprotected procedure
  * @see https://trpc.io/docs/v11/procedures
  **/
 export const publicProcedure = t.procedure;
+
+/**
+ * Middleware untuk memeriksa autentikasi
+ */
+const isAuthenticated = middleware(async ({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Anda harus login terlebih dahulu',
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
 
 /**
  * Merge multiple routers together
@@ -52,13 +71,26 @@ export const createCallerFactory = t.createCallerFactory;
 /**
  * Create a protected procedure that requires authentication
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = t.procedure.use(isAuthenticated);
+
+/**
+ * Middleware dan procedure untuk role admin
+ */
+export const isAdmin = middleware(async ({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
-      message: 'You must be logged in to access this resource',
+      message: 'Anda harus login terlebih dahulu',
     });
   }
+  
+  if (ctx.user.role !== 'admin') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Hanya admin yang diizinkan',
+    });
+  }
+  
   return next({
     ctx: {
       ...ctx,
@@ -66,3 +98,61 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     },
   });
 });
+
+export const adminProcedure = t.procedure.use(isAdmin);
+
+/**
+ * Middleware dan procedure untuk role guru
+ */
+export const isTeacher = middleware(async ({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Anda harus login terlebih dahulu',
+    });
+  }
+  
+  if (ctx.user.role !== 'teacher' && ctx.user.role !== 'admin') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Hanya guru yang diizinkan',
+    });
+  }
+  
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
+
+export const teacherProcedure = t.procedure.use(isTeacher);
+
+/**
+ * Middleware dan procedure untuk role siswa
+ */
+export const isStudent = middleware(async ({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Anda harus login terlebih dahulu',
+    });
+  }
+  
+  if (ctx.user.role !== 'student' && ctx.user.role !== 'teacher' && ctx.user.role !== 'admin') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Akses tidak diizinkan',
+    });
+  }
+  
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
+
+export const studentProcedure = t.procedure.use(isStudent);

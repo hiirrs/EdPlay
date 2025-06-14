@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { BookOpen, Calculator, Microscope, PenTool } from 'lucide-react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { trpc } from '~/utils/trpc';
 import { ClassCard } from '~/components/home/ClassCard';
@@ -51,23 +50,27 @@ export default function Dashboard() {
 
   const mappedClassData = classData.map((course) => ({
     id: course.id,
-    subject: course.name,
+    subject: course.subject, 
+    description: course.description,
+    educationLevel: course.educationLevel,
+    grade: course.grade,
     class: `Kelas ${course.grade ?? '-'}`,
-    taskDate: '09/11/23',
-    taskTime: '12:00',
-    hasNewMaterial: true,
-    hasExam: false,
-    teacher: course.teacher?.fullname ?? 'Tidak diketahui',
+    taskDate: course.taskDate || '',
+    taskTime: course.taskTime || '',
+    hasNewMaterial: course.hasNewMaterial,
+    hasExam: course.hasExam,
+    teacher: course.teacher,
     imageUrl: course.imageUrl ?? '/images/default.png',
     isActive: course.isActive,
     isEditable: user?.role === 'teacher' || user?.role === 'admin',
+    token: course.token || '',
   }));
 
-  const leaderboardData = [
-    { rank: 14, name: 'Fulan 2', score: 2350 },
-    { rank: 15, name: 'Fulan', score: 2320 },
-    { rank: 16, name: 'Fulan 3', score: 2280 },
-  ];
+  // const leaderboardData = [
+  //   { rank: 14, name: 'Fulan 2', score: 2350 },
+  //   { rank: 15, name: 'Fulan', score: 2320 },
+  //   { rank: 16, name: 'Fulan 3', score: 2280 },
+  // ];
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -91,7 +94,7 @@ export default function Dashboard() {
         </div>
 
         {/* Features */}
-        <Card className="mb-8 overflow-hidden bg-[#172b4d] text-white border-0">
+        {/* <Card className="mb-8 overflow-hidden bg-[#172b4d] text-white border-0">
           <CardContent className="p-0">
             <div className="p-4">
               <h2 className="text-xl font-bold mb-2">Leaderboard</h2>
@@ -130,7 +133,7 @@ export default function Dashboard() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Class List */}
         <div>
