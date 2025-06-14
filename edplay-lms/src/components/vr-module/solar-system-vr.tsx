@@ -136,7 +136,11 @@ export default function SolarSystemVR() {
   const ringsData = solarSystemData.filter((b) => b.type === 'ring');
 
   return (
-    <Scene environment="preset: starry; ground: none; lightPosition: 0 -1000 0">
+    <Scene
+      environment="preset: starry; ground: none; lightPosition: 0 -1000 0"
+      vr-mode-ui="enabled: true"
+      embedded
+    >
       {/* Camera + Cursor */}
       <Entity position="0 0 20">
         <Entity
